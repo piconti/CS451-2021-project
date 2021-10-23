@@ -1,6 +1,10 @@
-package cs451;
+package cs451.Parsers;
 
 import java.util.List;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.util.ArrayList;
+import cs451.*;
 
 public class Parser {
 
@@ -68,6 +72,26 @@ public class Parser {
 
     public String config() {
         return configParser.getPath();
+    }
+
+    public int[] readConfig() throws FileNotFoundException, IOException {
+        return configParser.readConfig();
+    }
+
+    public int getNumMessages() throws FileNotFoundException, IOException {
+        return configParser.readConfig()[0];
+    }
+
+    public int getReceiverId() throws FileNotFoundException, IOException {
+        return configParser.readConfig()[1];
+    }
+
+    public void writeToOutput(ArrayList<String> log) throws IOException, FileNotFoundException {
+        outputParser.writeToOutput(log);
+    }
+
+    public boolean wrotetoOutput() {
+        return outputParser.wrotetoOutput();
     }
 
 }

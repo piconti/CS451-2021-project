@@ -3,16 +3,48 @@ package cs451;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.SocketException;
 import java.net.Socket;
+import cs451.Parsers.*;
+import cs451.Links.*;
+import java.util.List;
+import java.util.ArrayList;
 
 public class Main {
+
+    public static Parser parser;
+    public static PerfectLink link;
+    public static int numMessagesToSend;
+    public static int receiverHost;
+    public static ArrayList<String> senderLog = new ArrayList<>();
+    public static ArrayList<String> deliveredLog = new ArrayList<>();
+    private static final int PORT_PREFIX = 11000;
+
 
     private static void handleSignal() {
         //immediately stop network packet processing
         System.out.println("Immediately stopping network packet processing.");
-
-        //write/flush output file if necessary
-        System.out.println("Writing output.");
+        try {
+            System.out.println("Writing output.");
+            if(parser.myId() == receiverHost) {
+                link.setStopReceiving(true);
+                deliveredLog = link.getDeliveredLog();
+                parser.writeToOutput(deliveredLog);
+            } else {
+                if(!parser.wrotetoOutput()) {
+                    senderLog = link.getSentLog();
+                    parser.writeToOutput(senderLog);
+                }
+            }
+            Thread.sleep(1000);
+            if(!link.isClosed()) {
+                System.out.println("closing link " + link.getHostId());
+                link.close();
+            }
+        } catch (Exception e) {
+            System.out.println("Something went wrong when wirting to the output file.");
+            e.printStackTrace();
+        }
     }
 
     private static void initSignalHandlers() {
@@ -24,8 +56,9 @@ public class Main {
         });
     }
 
-    public static void main(String[] args) throws InterruptedException {
-        Parser parser = new Parser(args);
+    public static void main(String[] args) throws InterruptedException, IOException, SocketException {
+        
+        parser = new Parser(args);
         parser.parse();
 
         initSignalHandlers();
@@ -56,7 +89,38 @@ public class Main {
 
         System.out.println("Doing some initialization\n");
 
+        numMessagesToSend = parser.getNumMessages();
+        receiverHost = parser.getReceiverId();
+
+        System.out.println("m: " + String.valueOf(numMessagesToSend));
+        System.out.println("i: " + String.valueOf(receiverHost));
+        System.out.println();
+
+        int currentM = 1;
+
+        int currentHostPort = PORT_PREFIX + parser.myId();
+        int receiverHostPort = PORT_PREFIX + receiverHost;
+
+        link = new PerfectLink("localhost", currentHostPort, parser.myId());
+
+        System.out.println("My id: " + parser.myId());
+
         System.out.println("Broadcasting and delivering messages...\n");
+
+        if(parser.myId() == receiverHost) {
+            if(!link.isClosed()) {
+                link.receive();
+            }
+        } else {
+            while(currentM<=numMessagesToSend) {
+                Message m = new Message(link.getHostId(), currentM, link.getIp(), link.getPort(), "m " + String.valueOf(currentM));
+                link.send(m, "localhost", receiverHostPort);
+                currentM++;
+            }
+            senderLog = link.getSentLog();
+            parser.writeToOutput(senderLog);
+            
+        }
 
         // After a process finishes broadcasting,
         // it waits forever for the delivery of messages.
