@@ -1,6 +1,7 @@
 package cs451;
 
 import cs451.Links.*;
+import java.net.NullPointerException;
 
 public class Message {
 
@@ -9,6 +10,8 @@ public class Message {
     private int hostId;
     private String contents;
     private int id;
+    private String destinationIp;
+    private int destinationPort;
 
    
     public Message(int hostId, int id, String sourceIp, int sourcePort, String contents) {
@@ -56,6 +59,27 @@ public class Message {
 
     public int getId() {
         return this.id;
+    }
+
+    public void setDestination(String destinationIp, int destinationPort) {
+        this.destinationIp = destinationIp;
+        this.destinationPort = destinationPort;
+    }
+
+    public String getDestinationIp() {
+        try {
+            return this.destinationIp;
+        } catch (NullPointerException e) {
+            System.out.println("the destination ip of the message was not defined.")
+        }
+    }
+
+    public int getDestinationPort() {
+        try {
+            return this.destinationPort;
+        } catch (NullPointerException e) {
+            System.out.println("the destination port of the message was not defined.")
+        }
     }
 
 }

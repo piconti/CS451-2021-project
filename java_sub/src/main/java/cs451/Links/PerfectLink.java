@@ -14,6 +14,7 @@ import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.io.IOException;
 import java.net.SocketException;
+import java.util.HashMap;
 
 
 public class PerfectLink  {
@@ -29,11 +30,12 @@ public class PerfectLink  {
     private int hostId;
     private byte[] sendBuf;
     private byte[] receiveBuf = new byte[RECEIVE_BUFF_LENGTH];
+    private HashMap<String, Message> leftToAck = new HashMap<String, Message>();
     private ArrayList<String> delivered = new ArrayList<>();
     private ArrayList<String> deliveredLog = new ArrayList<>();
     private ArrayList<String> sentLog = new ArrayList<>();
-    private boolean stopReceiving = false;
-    private boolean continueSending = true;
+    private boolean receiving = true;
+    //private boolean continueSending = true;
 
     public PerfectLink(String ip, int port, int hostId) throws IOException {
         this.flLink = new FairLossLink(ip, port, hostId);
@@ -46,16 +48,34 @@ public class PerfectLink  {
     public void send(Message message, String destinationIp, int destinationPort) throws IOException, UnknownHostException {
         connectSocket();
         System.out.println("inside send");
-        boolean acked = false;
-        while(!acked){
+        //boolean acked = false;
+        
+        flLink.send(message, destinationIp, destinationPort);
+        if(!leftToAck.containsKey(message.getUniqueId())) {
+            message.setDestination(destinationIp, destinationPort);
+            this.leftToAck.put(message.getUniqueId(), message);
+        }
+        /*while(!acked){
             flLink.send(message, destinationIp, destinationPort);
             acked = checkIfAcked(message, destinationPort);
+        }*/
+        //sentLog.add("b " + message.getId());
+    }
+
+    public void resendAllLeftToAck() throws IOException, UnknownHostException {
+        for (Message m : this.leftToAck.values()) {
+            send(m, m.getDestinationIp(), m.getDestinationPort());
         }
-        sentLog.add("b " + message.getId());
     }
 
     public void receive() throws SocketException, UnknownHostException, IOException {
-        int timeoutCount = 0;
+        
+        while(this.receiving) {
+            flLink.setReceiving(true);
+            DatagramPacket rcvPacket = flLink.receive();
+            deliver(rcvPacket);
+        }
+        /*int timeoutCount = 0;
         connectSocket();
         DatagramPacket rcvPacket = new DatagramPacket(receiveBuf, RECEIVE_BUFF_LENGTH);
         socket.setSoTimeout(2000);   // set the timeout in millisecounds.
@@ -78,9 +98,10 @@ public class PerfectLink  {
             if(stopReceiving){
                 break;
             }
-        }
+        }*/
     }
 
+    // TODO DELETE
     private boolean checkIfAcked(Message message, int destinationPort) throws SocketException, UnknownHostException, IOException {
         connectSocket();
         DatagramPacket ackPacket = new DatagramPacket(receiveBuf, RECEIVE_BUFF_LENGTH);
@@ -107,13 +128,18 @@ public class PerfectLink  {
 
     private void deliver(DatagramPacket packet) throws UnknownHostException, IOException{
         String rcvd = getRcvdFromPacket(packet);
-        if(!delivered.contains(rcvd)) {
+        if(checkIfIck(rcvd)) {
+            String uniqueId = getUniqueIdFromAck(); // TODO: define!
+            Message ackedMsg = this.leftToAck.remove(uniqueId);
+            sentLog.add("b " + ackedMsg.getId());
+        } else if(!delivered.contains(rcvd)) {
             System.out.println(rcvd + " : delivered");
             String data = new String(packet.getData(), 0, packet.getLength());
+            String identifier = getIdentifierFromData(data);
+            sendAck(packet.getAddress().toString(), packet.getPort(), identifier);
+            String senderId = getSenderIdFromPort(packet.getPort());
             int rcvdId = getMessageIdFromData(data);
-            sendAck(packet.getAddress().toString(), packet.getPort());
-            String senderPort = getSenderIdFromPort(packet.getPort());
-            deliveredLog.add("d " + senderPort + " " + String.valueOf(rcvdId));
+            deliveredLog.add("d " + senderId + " " + String.valueOf(rcvdId));
             delivered.add(rcvd);
         } else {
             System.out.println(rcvd + " : already delivered");
@@ -124,10 +150,11 @@ public class PerfectLink  {
         return "rcvd from " + dp.getAddress() + ", " + dp.getPort() + ": "+ new String(dp.getData(), 0, dp.getLength());
     }
 
-    private void sendAck(String senderIp, int senderPort) throws UnknownHostException, IOException {
-        String contents = "ack " + String.valueOf(senderPort);
+    private void sendAck(String senderIp, int senderPort, String identifier) throws UnknownHostException, IOException {
+        //String senderPort = getSenderIdFromPort(packet.getPort());
+        String contents = "ack " + identifier;
         Message ack = new Message(this.hostId, 0, ip, port, contents);
-        connectSocket();
+        //connectSocket();
         flLink.send(ack, senderIp, senderPort);
     }
 
@@ -135,6 +162,13 @@ public class PerfectLink  {
         String[] splitData = data.split("\\s+");
         System.out.println(data.charAt(0));
         return Integer.parseInt(splitData[0]);
+    }
+
+    private String getIdentifierFromData(String data) {
+        String[] splitData = data.split("m:");
+        String identifier = splitData[0];
+        System.out.println("identifier :" + identifier);
+        return identifier;
     }
 
     private String getSenderIdFromPort(int port) {
@@ -157,15 +191,20 @@ public class PerfectLink  {
         socket.close();
     }
 
-    public boolean getStopReceiving() {
+    /*public boolean getStopReceiving() {
         return this.stopReceiving;
+    }*/
+
+    public void setReceiving(boolean newVal) {
+        this.receiving = newVal;
+        this.flLink.setReceiving(newVal);
     }
 
-    public void setStopReceiving(boolean newVal) {
-        this.stopReceiving = newVal;
+    public boolean isReceiving() {
+        return this.receiving;
     }
 
-    public boolean continueSending() {
+    /*public boolean continueSending() {
         return this.continueSending;
     }
 
@@ -175,7 +214,7 @@ public class PerfectLink  {
 
     public void open() throws SocketException, UnknownHostException {
         this.socket = new DatagramSocket(port, InetAddress.getByName(ip));
-    }
+    }*/
 
     public ArrayList<String> getDelivered() {
         return this.delivered;

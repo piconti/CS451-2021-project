@@ -27,8 +27,8 @@ public class Main {
         try {
             System.out.println("Writing output.");
             if(parser.myId() == receiverHost) {
-                link.setStopReceiving(true);
-                Thread.sleep(2000);
+                link.setReceiving(false);
+                //Thread.sleep(2000);
                 deliveredLog = link.getDeliveredLog();
                 parser.writeToOutput(deliveredLog);
             } else {

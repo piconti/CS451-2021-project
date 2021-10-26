@@ -25,7 +25,7 @@ public class FairLossLink  {
     private int hostId;
     private byte[] sendBuf;
     private byte[] receiveBuf = new byte[RECEIVE_BUFF_LENGTH];
-    //private boolean listening = true;
+    private boolean receiving = true;
     private ArrayList<String> delivered = new ArrayList();
 
     public FairLossLink(String ip, int port, int hostId) throws SocketException, UnknownHostException {
@@ -45,23 +45,25 @@ public class FairLossLink  {
         System.out.println("Sent: " + message.getMessage());
     }
 
-    public void receive() throws IOException {
+    public DatagramPacket receive() throws IOException {
         connectSocket();
         DatagramPacket rcvPacket = new DatagramPacket(receiveBuf, RECEIVE_BUFF_LENGTH);
-        socket.setSoTimeout(2000);   // set the timeout in millisecounds.
-        while(true){        // recieve data until timeout
+        socket.setSoTimeout(1000);   // set the timeout in millisecounds.
+        while(this.receiving){        // recieve data until timeout
             try {
                 socket.receive(rcvPacket);
                 String rcvd = "rcvd from " + rcvPacket.getAddress() + ", " + rcvPacket.getPort() + ": "+ new String(rcvPacket.getData(), 0, rcvPacket.getLength());
                 System.out.println(rcvd);
                 delivered.add(rcvd);
                 this.receiveBuf = new byte[RECEIVE_BUFF_LENGTH];
+                return rcvPacket;
             }
             catch (SocketTimeoutException e) {
                 // timeout exception.
                 System.out.println("Timeout reached!!! in FairLossLink of host " + String.valueOf(hostId));
             }
         }
+        return rcvPacket;
     }
 
     public String getIp() {
@@ -82,6 +84,14 @@ public class FairLossLink  {
 
     public void close() {
         socket.close();
+    }
+
+    public boolean isReceiving() {
+        return this.receiving;
+    }
+
+    public void setReceiving(boolean newVal) {
+        this.receiving = newVal;
     }
 
     public void open() throws SocketException, UnknownHostException {
