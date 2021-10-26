@@ -28,15 +28,17 @@ public class Main {
             System.out.println("Writing output.");
             if(parser.myId() == receiverHost) {
                 link.setStopReceiving(true);
+                Thread.sleep(2000);
                 deliveredLog = link.getDeliveredLog();
                 parser.writeToOutput(deliveredLog);
             } else {
+                //link.setContinueSending(false);
                 if(!parser.wrotetoOutput()) {
                     senderLog = link.getSentLog();
                     parser.writeToOutput(senderLog);
                 }
             }
-            Thread.sleep(1000);
+            //Thread.sleep(2000);
             if(!link.isClosed()) {
                 System.out.println("closing link " + link.getHostId());
                 link.close();
@@ -112,7 +114,7 @@ public class Main {
                 link.receive();
             }
         } else {
-            while(currentM<=numMessagesToSend) {
+            while(currentM<=numMessagesToSend ) { //&& link.continueSending()) {
                 Message m = new Message(link.getHostId(), currentM, link.getIp(), link.getPort(), "m " + String.valueOf(currentM));
                 link.send(m, "localhost", receiverHostPort);
                 currentM++;

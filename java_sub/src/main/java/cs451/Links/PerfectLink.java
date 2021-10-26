@@ -19,7 +19,7 @@ import java.net.SocketException;
 public class PerfectLink  {
 
     private static final String IP_START_REGEX = "/";
-    private static final int RECEIVE_BUFF_LENGTH = 8000;
+    private static final int RECEIVE_BUFF_LENGTH = 4096;
     private static final int PORT_PREFIX = 11000;
 
     private FairLossLink flLink;
@@ -33,6 +33,7 @@ public class PerfectLink  {
     private ArrayList<String> deliveredLog = new ArrayList<>();
     private ArrayList<String> sentLog = new ArrayList<>();
     private boolean stopReceiving = false;
+    private boolean continueSending = true;
 
     public PerfectLink(String ip, int port, int hostId) throws IOException {
         this.flLink = new FairLossLink(ip, port, hostId);
@@ -162,6 +163,14 @@ public class PerfectLink  {
 
     public void setStopReceiving(boolean newVal) {
         this.stopReceiving = newVal;
+    }
+
+    public boolean continueSending() {
+        return this.continueSending;
+    }
+
+    public void setContinueSending(boolean newVal) {
+        this.continueSending = newVal;
     }
 
     public void open() throws SocketException, UnknownHostException {

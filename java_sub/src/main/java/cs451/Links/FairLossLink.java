@@ -17,7 +17,7 @@ import cs451.*;
 public class FairLossLink  {
     
     private static final String IP_START_REGEX = "/";
-    private static final int RECEIVE_BUFF_LENGTH = 8000;
+    private static final int RECEIVE_BUFF_LENGTH = 4096;
 
     private DatagramSocket socket;
     private String ip;
