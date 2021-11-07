@@ -9,15 +9,17 @@ import java.net.DatagramSocket;
 import java.net.DatagramPacket; 
 import java.util.ArrayList;
 import java.net.SocketTimeoutException;
+import java.lang.ClassNotFoundException;
 import java.net.UnknownHostException;
 import java.io.IOException;
 import java.net.SocketException;
+import java.io.Serializable;
 import cs451.*;
 
-public class FairLossLink  {
+public class FairLossLink {
     
     private static final String IP_START_REGEX = "/";
-    private static final int RECEIVE_BUFF_LENGTH = 4096;
+    private static final int RECEIVE_BUFF_LENGTH = 2048;
 
     private DatagramSocket socket;
     private String ip;
@@ -26,7 +28,8 @@ public class FairLossLink  {
     private byte[] sendBuf;
     private byte[] receiveBuf = new byte[RECEIVE_BUFF_LENGTH];
     private boolean receiving = true;
-    private ArrayList<String> delivered = new ArrayList();
+    private ArrayList<Message> delivered = new ArrayList();
+    private Message emptyMsg = new Message(0, 0, "", 0, "", false);
 
     public FairLossLink(String ip, int port, int hostId) throws SocketException, UnknownHostException {
         this.ip = ip;
@@ -39,32 +42,38 @@ public class FairLossLink  {
     }
 
     public void send(Message message, String destIp, int destPort) throws IOException, UnknownHostException {
-        sendBuf = message.getMessage().getBytes();
+        sendBuf = message.convertToBytes();//message.getMessage().getBytes();
         DatagramPacket packet = new DatagramPacket(sendBuf, sendBuf.length, InetAddress.getByName(destIp.split(IP_START_REGEX)[0]), destPort);
         socket.send(packet);
         System.out.println("Sent: " + message.getMessage());
     }
 
-    public DatagramPacket receive() throws IOException {
+    public Message receive() throws IOException, ClassNotFoundException {
         connectSocket();
         DatagramPacket rcvPacket = new DatagramPacket(receiveBuf, RECEIVE_BUFF_LENGTH);
         socket.setSoTimeout(1000);   // set the timeout in millisecounds.
-        while(this.receiving){        // recieve data until timeout
+        while(true){        // recieve data until timeout
             try {
                 socket.receive(rcvPacket);
-                String rcvd = "rcvd from " + rcvPacket.getAddress() + ", " + rcvPacket.getPort() + ": "+ new String(rcvPacket.getData(), 0, rcvPacket.getLength());
-                System.out.println(rcvd);
-                delivered.add(rcvd);
+                Message msg = Message.convertFromBytes(receiveBuf);
+                String rcvd = msg.getRcvdFromMsg();
+                //System.out.println("Inside FairLossLink: " + rcvd);
+                delivered.add(msg);
                 this.receiveBuf = new byte[RECEIVE_BUFF_LENGTH];
-                return rcvPacket;
+                return msg;
             }
             catch (SocketTimeoutException e) {
                 // timeout exception.
                 System.out.println("Timeout reached!!! in FairLossLink of host " + String.valueOf(hostId));
+            } finally {
+                if(!this.receiving) {
+                    break;
+                }
             }
         }
-        return rcvPacket;
+        return emptyMsg;
     }
+
 
     public String getIp() {
         return this.ip;
@@ -98,7 +107,7 @@ public class FairLossLink  {
         this.socket = new DatagramSocket(port, InetAddress.getByName(ip));
     }
 
-    public ArrayList<String> getDelivered() {
+    public ArrayList<Message> getDelivered() {
         return this.delivered;
     }
 

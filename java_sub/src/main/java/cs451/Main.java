@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.SocketException;
+import java.lang.ClassNotFoundException;
 import java.net.Socket;
 import cs451.Parsers.*;
 import cs451.Links.*;
@@ -58,7 +59,7 @@ public class Main {
         });
     }
 
-    public static void main(String[] args) throws InterruptedException, IOException, SocketException {
+    public static void main(String[] args) throws InterruptedException, IOException, SocketException, ClassNotFoundException {
         
         parser = new Parser(args);
         parser.parse();
@@ -114,11 +115,21 @@ public class Main {
                 link.receive();
             }
         } else {
-            while(currentM<=numMessagesToSend ) { //&& link.continueSending()) {
-                Message m = new Message(link.getHostId(), currentM, link.getIp(), link.getPort(), "m " + String.valueOf(currentM));
+            while(currentM<=numMessagesToSend ) { /*&& link.continueSending()) {*/
+                String contents = "m " + String.valueOf(currentM);
+                Message m = new Message(link.getHostId(), currentM, link.getIp(), link.getPort(), contents, true);
                 link.send(m, "localhost", receiverHostPort);
                 currentM++;
+                Thread.sleep(500);
             }
+            //link.receive();
+            Thread.sleep(2000);
+            //link.stopReceiving();
+            while(link.hasLeftToAck()) {
+                link.resendAllLeftToAck();
+                Thread.sleep(2000);
+            }
+            //link.startReceiving();
             senderLog = link.getSentLog();
             parser.writeToOutput(senderLog);
             
