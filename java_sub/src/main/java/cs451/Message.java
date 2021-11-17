@@ -3,7 +3,6 @@
 
 package cs451;
 
-import cs451.Links.*;
 import java.io.Serializable;
 import java.lang.NullPointerException;
 import java.lang.ClassNotFoundException;
@@ -12,59 +11,77 @@ import java.io.ByteArrayInputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.IOException;
+//import java.util.ArrayList;
+
 
 public class Message implements Serializable {
 
-    private String sourceIp;
-    private int sourcePort;
-    private int hostId;
+    //private static final String localIp = "localhost";
+    private static final int PORT_PREFIX = 11000;
+
+    private final int originalHostId;
     private String contents;
     private int id;
     private boolean msg; 
     private String destinationIp;
     private int destinationPort;
+    //private ArrayList<Integer> senderIds = new ArrayList<>(); //needed? check after
+    private int senderId;
+    private String currentSenderIp;
+    private int fifoSeqNum;
     //private static ByteArrayOutputStream bos = new ByteArrayOutputStream();
     //private static ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
 
    
-    public Message(int hostId, int id, String sourceIp, int sourcePort, String contents, boolean msg) {
-        this.hostId = hostId;
+    public Message(int hostId, int id, String contents, boolean msg) {
+        this.originalHostId = hostId;
         this.id = id;
-        this.sourceIp = sourceIp;
-        this.sourcePort = sourcePort;
         this.contents = contents;
         this.msg = msg;
+        this.senderId = hostId;
+        //this.senderIds.add(this.senderId);
     }
 
+    /* // never used
     public int[] identify() {
         int[] identifier = new int[2];
-        identifier[0] = id;
-        identifier[1] = hostId;
+        identifier[0] = this.id;
+        identifier[1] = this.originalHostId;
         return identifier;
+    }*/
+
+    
+    public String getOriginalUniqueId() {
+        // original unique id: "messageId orginialSenderId"
+        return String.valueOf(this.id) + " " + String.valueOf(this.originalHostId);
     }
 
+    /*
     public String getUniqueId() {
-        return String.valueOf(id) + " " + String.valueOf(hostId);
+        // unique id: "messageId currentSederId"
+        return String.valueOf(this.id) + " " + String.valueOf(this.senderId);
+    }*/
+
+    public String getOverallUniqueId() {
+        // overall unique id: "messageId orginialSenderId currentSederId"
+        return String.valueOf(this.id) + " " + String.valueOf(this.originalHostId) + " " + String.valueOf(this.senderId);
+    }
+
+    public int[] getOverallUniqueIdTab() {
+        // overall unique id as array: [messageId, orginialSenderId, currentSederId]
+        return new int[] {this.id, this.originalHostId, this.senderId};
     }
 
     public String getMessage() {
-        return getUniqueId() + " m: " + contents;
+        return getOverallUniqueId() + " m: " + contents;
     }
 
     public void showMessage() {
         System.out.println(getMessage());
     }
 
-    public int getHostId() {
-        return this.hostId;
-    }
-
-    public String getSourceIp() {
-        return this.sourceIp;
-    }
-
-    public int getSourcePort() {
-        return this.sourcePort;
+    public int getOriginalHostId() {
+        return this.originalHostId;
     }
 
     public String getContents() {
@@ -77,6 +94,39 @@ public class Message implements Serializable {
 
     public boolean isMsg() {
         return this.msg;
+    }
+    
+    public int getCurrentSenderId() {
+        return this.senderId;
+    }
+
+    public int getCurrentSenderPort() {
+        return getPortFromId(this.senderId);
+    }
+
+    public void setCurrentSenderIp(String ip) {
+        this.currentSenderIp = ip;
+    }
+
+    public String getCurrentSenderIp() {
+        try {
+            return this.currentSenderIp;
+        } catch (NullPointerException e) {
+            System.out.println("the destination ip of the message was not defined.");
+            return "localhost";
+        }
+    }
+
+    /* // TODO delete?
+    public ArrayList<Integer> getAllSenderIds() {
+        return this.senderIds;
+    }*/
+
+    public void addCurrentSenderId(int id) {
+        if(id != this.senderId) {
+            this.senderId = id;
+            //this.senderIds.add(id);
+        }
     }
 
     public String getUniqueIdOfAckedMsg() {
@@ -93,6 +143,7 @@ public class Message implements Serializable {
         this.destinationPort = destinationPort;
     }
 
+    
     public String getDestinationIp() {
         try {
             return this.destinationIp;
@@ -111,6 +162,19 @@ public class Message implements Serializable {
         } 
     }
 
+    public void setFifoSeqNum(int seqNum) {
+        this.fifoSeqNum = seqNum;
+    }
+
+    public int getFifoSeqNum() {
+        try {
+            return this.fifoSeqNum;
+        } catch (NullPointerException e) {
+            System.out.println("the sequence number of the message was not defined.");
+            return -1;
+        } 
+    }
+
     public byte[] convertToBytes() throws IOException {
         try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
          ObjectOutputStream out = new ObjectOutputStream(bos)) {
@@ -121,15 +185,23 @@ public class Message implements Serializable {
 
     public static Message convertFromBytes(byte[] bytes) throws IOException, ClassNotFoundException {
         try (ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
-         ObjectInputStream in = new ObjectInputStream(bis)) {
+            ObjectInputStream in = new ObjectInputStream(bis)) {
             return (Message) in.readObject();
         }
     }
 
     public String getRcvdFromMsg() {
-        return "rcvd from " + this.sourceIp + ", " + this.sourcePort + ": " + this.getContents();
+        String rcvd = "rcvd from host " + this.senderId + ", port " + getPortFromId(this.senderId);
+        if(this.senderId != this.originalHostId) {
+            return rcvd + " (original host: " + this.originalHostId + "): " + this.getContents();
+        } else {
+            return rcvd + ": " + this.getContents();
+        }
     }
 
+    private int getPortFromId(int hostId) {
+        return PORT_PREFIX + hostId;
+    }
 
 
 }

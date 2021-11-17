@@ -7,9 +7,11 @@ import java.net.SocketException;
 import java.lang.ClassNotFoundException;
 import java.net.Socket;
 import cs451.Parsers.*;
+import cs451.Broadcasts.BestEffortBroadcast;
 import cs451.Links.*;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 public class Main {
 
@@ -104,7 +106,14 @@ public class Main {
         int currentHostPort = PORT_PREFIX + parser.myId();
         int receiverHostPort = PORT_PREFIX + receiverHost;
 
-        link = new PerfectLink("localhost", currentHostPort, parser.myId());
+        HashMap<Integer, String> systemHosts = new HashMap<Integer, String>();
+        for (Host host: parser.hosts()) {
+            systemHosts.put(host.getId(), host.getIp());
+        }
+
+        
+        beb = new BestEffortBroadcast(parser.myId(), systemHosts, urbObserver)
+        //Perfectlink = new PerfectLink("localhost", currentHostPort, parser.myId());
 
         System.out.println("My id: " + parser.myId());
 
@@ -115,24 +124,20 @@ public class Main {
                 link.receive();
             }
         } else {
-            while(currentM<=numMessagesToSend ) { /*&& link.continueSending()) {*/
+            //senderLog = link.lauchSending(numMessagesToSend, receiverHost);
+            while(currentM<=numMessagesToSend) {// && link.continueSending()) {
                 String contents = "m " + String.valueOf(currentM);
-                Message m = new Message(link.getHostId(), currentM, link.getIp(), link.getPort(), contents, true);
+                Message m = new Message(link.getHostId(), currentM, contents, true);
                 link.send(m, "localhost", receiverHostPort);
                 currentM++;
                 Thread.sleep(500);
             }
-            //link.receive();
-            Thread.sleep(2000);
-            //link.stopReceiving();
             while(link.hasLeftToAck()) {
-                link.resendAllLeftToAck();
                 Thread.sleep(2000);
+                link.resendAllLeftToAck();
             }
-            //link.startReceiving();
             senderLog = link.getSentLog();
-            parser.writeToOutput(senderLog);
-            
+            parser.writeToOutput(senderLog);   
         }
 
         // After a process finishes broadcasting,

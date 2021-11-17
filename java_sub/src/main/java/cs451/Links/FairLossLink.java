@@ -13,7 +13,6 @@ import java.lang.ClassNotFoundException;
 import java.net.UnknownHostException;
 import java.io.IOException;
 import java.net.SocketException;
-import java.io.Serializable;
 import cs451.*;
 
 public class FairLossLink {
@@ -28,8 +27,8 @@ public class FairLossLink {
     private byte[] sendBuf;
     private byte[] receiveBuf = new byte[RECEIVE_BUFF_LENGTH];
     private boolean receiving = true;
-    private ArrayList<Message> delivered = new ArrayList();
-    private Message emptyMsg = new Message(0, 0, "", 0, "", false);
+    private ArrayList<Message> delivered = new ArrayList<>();
+    private Message emptyMsg = new Message(0, 0, "", false);
 
     public FairLossLink(String ip, int port, int hostId) throws SocketException, UnknownHostException {
         this.ip = ip;
@@ -42,24 +41,29 @@ public class FairLossLink {
     }
 
     public void send(Message message, String destIp, int destPort) throws IOException, UnknownHostException {
-        sendBuf = message.convertToBytes();//message.getMessage().getBytes();
+        connectSocket();
+        message.addCurrentSenderId(this.hostId);
+        sendBuf = message.convertToBytes(); //message.getMessage().getBytes();
         DatagramPacket packet = new DatagramPacket(sendBuf, sendBuf.length, InetAddress.getByName(destIp.split(IP_START_REGEX)[0]), destPort);
         socket.send(packet);
         System.out.println("Sent: " + message.getMessage());
     }
 
+
     public Message receive() throws IOException, ClassNotFoundException {
         connectSocket();
-        DatagramPacket rcvPacket = new DatagramPacket(receiveBuf, RECEIVE_BUFF_LENGTH);
+        DatagramPacket rcvPacket = new DatagramPacket(this.receiveBuf, RECEIVE_BUFF_LENGTH);
         socket.setSoTimeout(1000);   // set the timeout in millisecounds.
         while(true){        // recieve data until timeout
             try {
+                this.receiveBuf = new byte[RECEIVE_BUFF_LENGTH];
+                rcvPacket = new DatagramPacket(this.receiveBuf, RECEIVE_BUFF_LENGTH);
                 socket.receive(rcvPacket);
-                Message msg = Message.convertFromBytes(receiveBuf);
-                String rcvd = msg.getRcvdFromMsg();
+                Message msg = Message.convertFromBytes(this.receiveBuf);
+                msg.setCurrentSenderIp(String.valueOf(rcvPacket.getAddress()));
+                //String rcvd = msg.getRcvdFromMsg();
                 //System.out.println("Inside FairLossLink: " + rcvd);
                 delivered.add(msg);
-                this.receiveBuf = new byte[RECEIVE_BUFF_LENGTH];
                 return msg;
             }
             catch (SocketTimeoutException e) {
@@ -92,7 +96,7 @@ public class FairLossLink {
     }
 
     public void close() {
-        socket.close();
+        this.socket.close();
     }
 
     public boolean isReceiving() {
@@ -115,6 +119,10 @@ public class FairLossLink {
         if(socket.isClosed()) {
             socket.connect(InetAddress.getByName(ip), port);
         }
+    }
+
+    public boolean isClosed() {
+        return this.socket.isClosed();
     }
 
 }
