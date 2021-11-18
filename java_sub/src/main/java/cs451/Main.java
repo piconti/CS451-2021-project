@@ -1,15 +1,13 @@
 package cs451;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.net.SocketException;
 import java.lang.ClassNotFoundException;
-import java.net.Socket;
 import cs451.Parsers.*;
 import cs451.Broadcasts.BestEffortBroadcast;
+import cs451.Broadcasts.FifoReliableBroadcast;
+import cs451.Broadcasts.UniformReliableBroadcast;
 import cs451.Links.*;
-import java.util.List;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -17,11 +15,14 @@ public class Main {
 
     public static Parser parser;
     public static PerfectLink link;
+    public static FifoReliableBroadcast fifo;
+    public static BestEffortBroadcast beb;
+    public static UniformReliableBroadcast urb;
     public static int numMessagesToSend;
     public static int receiverHost;
-    public static ArrayList<String> senderLog = new ArrayList<>();
-    public static ArrayList<String> deliveredLog = new ArrayList<>();
-    private static final int PORT_PREFIX = 11000;
+    public static ArrayList<String> fifoLog = new ArrayList<>();
+    //public static ArrayList<String> deliveredLog = new ArrayList<>();
+    //private static final int PORT_PREFIX = 11000;
 
 
     private static void handleSignal() {
@@ -29,6 +30,11 @@ public class Main {
         System.out.println("Immediately stopping network packet processing.");
         try {
             System.out.println("Writing output.");
+            fifoLog = urb.getLog();
+            parser.writeToOutput(fifoLog);
+            //deliveredLog = fifo.getDeliveredLog();
+            //parser.writeToOutput(senderLog);
+            /*
             if(parser.myId() == receiverHost) {
                 link.setReceiving(false);
                 //Thread.sleep(2000);
@@ -40,11 +46,11 @@ public class Main {
                     senderLog = link.getSentLog();
                     parser.writeToOutput(senderLog);
                 }
-            }
+            }*/
             //Thread.sleep(2000);
-            if(!link.isClosed()) {
-                System.out.println("closing link " + link.getHostId());
-                link.close();
+            if(!urb.isClosed()) {
+                System.out.println("closing link " + urb.getHostId());
+                urb.close();
             }
         } catch (Exception e) {
             System.out.println("Something went wrong when wirting to the output file.");
@@ -95,30 +101,41 @@ public class Main {
         System.out.println("Doing some initialization\n");
 
         numMessagesToSend = parser.getNumMessages();
-        receiverHost = parser.getReceiverId();
+        //receiverHost = parser.getReceiverId();
 
         System.out.println("m: " + String.valueOf(numMessagesToSend));
-        System.out.println("i: " + String.valueOf(receiverHost));
+        //System.out.println("i: " + String.valueOf(receiverHost));
         System.out.println();
 
         int currentM = 1;
 
+        /*
         int currentHostPort = PORT_PREFIX + parser.myId();
         int receiverHostPort = PORT_PREFIX + receiverHost;
+        */
 
         HashMap<Integer, String> systemHosts = new HashMap<Integer, String>();
         for (Host host: parser.hosts()) {
             systemHosts.put(host.getId(), host.getIp());
         }
 
-        
-        beb = new BestEffortBroadcast(parser.myId(), systemHosts, urbObserver)
+        urb = new UniformReliableBroadcast(parser.myId(), systemHosts);
+        //beb = new BestEffortBroadcast(parser.myId(), systemHosts, urbObserver)
         //Perfectlink = new PerfectLink("localhost", currentHostPort, parser.myId());
 
         System.out.println("My id: " + parser.myId());
 
         System.out.println("Broadcasting and delivering messages...\n");
 
+        //Thread.sleep(20000);
+        while(currentM<=numMessagesToSend) {// && link.continueSending()) {
+            String contents = "m " + String.valueOf(currentM);
+            Message m = new Message(urb.getHostId(), currentM, contents, true);
+            urb.broadcast(m);
+            currentM++;
+            Thread.sleep(500);
+        }
+        /*
         if(parser.myId() == receiverHost) {
             if(!link.isClosed()) {
                 link.receive();
@@ -138,7 +155,7 @@ public class Main {
             }
             senderLog = link.getSentLog();
             parser.writeToOutput(senderLog);   
-        }
+        }*/
 
         // After a process finishes broadcasting,
         // it waits forever for the delivery of messages.

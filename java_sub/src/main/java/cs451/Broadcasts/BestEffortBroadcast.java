@@ -18,6 +18,7 @@ public class BestEffortBroadcast implements Observer {
     private String ip;
     private int port;
     private int hostId;
+    //private ArrayList<String> log = new ArrayList<>();
     private HashMap<Integer, String> systemHosts = new HashMap<Integer, String>();
     private ArrayList<Message> delivered = new ArrayList<>();
 
@@ -30,26 +31,54 @@ public class BestEffortBroadcast implements Observer {
         this.systemHosts = systemHosts;
     }
 
-    private int getPortFromId(int hostId) {
-        return PORT_PREFIX + hostId;
+    public void broadcast(Message msg) throws IOException, UnknownHostException {
+        Message message = changeSenderIfNeeded(msg);
+        //this.log.add("b " + String.valueOf(msg.getId()));
+        ArrayList<Integer> destinationPorts = new ArrayList<>();
+        ArrayList<String> destinationIps = new ArrayList<>();
+        for(int destId: this.systemHosts.keySet()) {
+            destinationPorts.add(getPortFromId(destId));
+            destinationIps.add(this.systemHosts.get(destId));
+        }
+        this.pLink.sendMultiple(message, destinationIps, destinationPorts);
     }
 
-    public void broadcast(Message msg) throws IOException, UnknownHostException {
-        msg.addCurrentSenderId(this.hostId);
+    public void broadcastOneByOne(Message msg) throws IOException, UnknownHostException {
+        Message message = changeSenderIfNeeded(msg);
         for(int destId: this.systemHosts.keySet()) {
-            this.pLink.send(msg, this.systemHosts.get(destId), getPortFromId(destId)); 
+            this.pLink.send(message, this.systemHosts.get(destId), getPortFromId(destId)); 
         }
     }
 
     @Override
-    public void deliver(Message msg) throws UnknownHostException, IOException {
+    public void deliver(Message msg, int currentSenderId) throws UnknownHostException, IOException {
+        int senderId = msg.getCurrentSenderId();
+        if(senderId != currentSenderId){
+            System.out.println("!!! senderId != currentSenderId !!!! - Beb");
+        }
+        this.urbObserver.deliver(msg, currentSenderId);
         this.delivered.add(msg);
-        this.urbObserver.deliver(msg);
+        //deliverToLog(msg);
+        //System.out.println("* * " + msg.getRcvdFromMsg() + " : delivered to BEB * *");
     }
 
-    /* // TODO DELETE?
-    public ArrayList<Message> getDelivered() {
-        return this.pLink.getDelivered();
+    private int getPortFromId(int hostId) {
+        return PORT_PREFIX + hostId;
+    }
+
+    private Message changeSenderIfNeeded(Message msg) {
+        if(msg.getCurrentSenderId() != this.hostId) {
+            return new Message(msg, this.hostId);
+        } else {
+            return msg;
+        }
+    }
+
+    /*
+    private void deliverToLog(Message msg) {
+        this.log.add("d " + msg.getOriginalHostId() + " " + String.valueOf(msg.getId()));
+        this.delivered.add(msg);
+        System.out.println("* * * *" + msg.getRcvdFromMsg() + " : delivered to BEB * * * *");
     }*/
 
     public PerfectLink getLink() {
@@ -63,23 +92,27 @@ public class BestEffortBroadcast implements Observer {
     public int gethostId() {
         return this.hostId;
     }
-
-    /*
-    public void updateSystemHosts(ArrayList<int> newHosts) {
-        this.systemHostIds = newHosts;
-    }
-
-    public void suspectHost(int supectedHostId) {
-        this.systemHostIds.remove(supectedHostId);
-    }
-
-    public boolean checkIfSuspected(int hostToCheck) {
-        return this.systemHostIds.contains(hostToCheck);
-    }
-    */
     
     public HashMap<Integer, String> getSystemHosts() {
         return this.systemHosts;
     }
+
+    public boolean isClosed() {
+        return this.pLink.isClosed();
+    }
+
+    public void close() {
+        this.pLink.close();
+    }
+
+    /*
+    public ArrayList<String> getLog() {
+        return this.log;
+    }*/
+
+    public int getHostId() {
+        return this.hostId;
+    }
+
 
 }

@@ -12,7 +12,7 @@ import cs451.*;
 public class ConfigParser {
 
     private String path;
-    private final int LEN_VALUES=2;
+    private final int LEN_VALUES=1;
 
     public boolean populate(String value) {
         File file = new File(value);

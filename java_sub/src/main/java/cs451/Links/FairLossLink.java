@@ -42,11 +42,20 @@ public class FairLossLink {
 
     public void send(Message message, String destIp, int destPort) throws IOException, UnknownHostException {
         connectSocket();
-        message.addCurrentSenderId(this.hostId);
-        sendBuf = message.convertToBytes(); //message.getMessage().getBytes();
+        Message newMsg = changeSenderIfNeeded(message);
+        //message.addCurrentSenderId(this.hostId);
+        sendBuf = newMsg.convertToBytes(); //message.getMessage().getBytes();
         DatagramPacket packet = new DatagramPacket(sendBuf, sendBuf.length, InetAddress.getByName(destIp.split(IP_START_REGEX)[0]), destPort);
         socket.send(packet);
-        System.out.println("Sent: " + message.getMessage());
+        System.out.println("Sent: " + newMsg.getMessage() + " to " + String.valueOf(destPort));
+    }
+
+    private Message changeSenderIfNeeded(Message msg) {
+        if(msg.getCurrentSenderId() != this.hostId) {
+            return new Message(msg, this.hostId);
+        } else {
+            return msg;
+        }
     }
 
 
@@ -68,7 +77,7 @@ public class FairLossLink {
             }
             catch (SocketTimeoutException e) {
                 // timeout exception.
-                System.out.println("Timeout reached!!! in FairLossLink of host " + String.valueOf(hostId));
+                System.out.println("Timeout reached!!! in FairLossLink receive of host " + String.valueOf(hostId));
             } finally {
                 if(!this.receiving) {
                     break;

@@ -42,6 +42,26 @@ public class Message implements Serializable {
         //this.senderIds.add(this.senderId);
     }
 
+    public Message(Message msgToCopy, int newSenderId) {
+        this.originalHostId = msgToCopy.getOriginalHostId();
+        this.id = msgToCopy.getId();
+        this.contents = msgToCopy.getContents();
+        this.msg = msgToCopy.isMsg();
+        this.senderId = newSenderId;
+        //this.senderIds.add(this.senderId);
+    }
+
+    public Message(Message msgToCopy, String destinationIp, int destinationPort) {
+        this.originalHostId = msgToCopy.getOriginalHostId();
+        this.id = msgToCopy.getId();
+        this.contents = msgToCopy.getContents();
+        this.msg = msgToCopy.isMsg();
+        this.senderId = msgToCopy.getCurrentSenderId();
+        this.destinationIp = destinationIp;
+        this.destinationPort = destinationPort;
+        //this.senderIds.add(this.senderId);
+    }
+
     /* // never used
     public int[] identify() {
         int[] identifier = new int[2];
@@ -67,13 +87,18 @@ public class Message implements Serializable {
         return String.valueOf(this.id) + " " + String.valueOf(this.originalHostId) + " " + String.valueOf(this.senderId);
     }
 
+    public String getOverallUniqueIdToPrint() {
+        // overall unique id: "messageId orginialSenderId currentSederId"
+        return "msgId: " + String.valueOf(this.id) + ", ogSender: " + String.valueOf(this.originalHostId) + ", currentSender: " + String.valueOf(this.senderId);
+    }
+
     public int[] getOverallUniqueIdTab() {
         // overall unique id as array: [messageId, orginialSenderId, currentSederId]
         return new int[] {this.id, this.originalHostId, this.senderId};
     }
 
     public String getMessage() {
-        return getOverallUniqueId() + " m: " + contents;
+        return getOverallUniqueIdToPrint() + " : [" + contents + "]";
     }
 
     public void showMessage() {
@@ -129,7 +154,7 @@ public class Message implements Serializable {
         }
     }
 
-    public String getUniqueIdOfAckedMsg() {
+    public String getOverallUniqueIdOfAckedMsg() {
         if(!this.msg) {
             String[] id = this.contents.split("ack ");
             return id[1];
@@ -191,11 +216,11 @@ public class Message implements Serializable {
     }
 
     public String getRcvdFromMsg() {
-        String rcvd = "rcvd from host " + this.senderId + ", port " + getPortFromId(this.senderId);
+        String rcvd = "rcvd from host " + this.senderId;
         if(this.senderId != this.originalHostId) {
             return rcvd + " (original host: " + this.originalHostId + "): " + this.getContents();
         } else {
-            return rcvd + ": " + this.getContents();
+            return rcvd + ": [" + this.getContents() + "]";
         }
     }
 

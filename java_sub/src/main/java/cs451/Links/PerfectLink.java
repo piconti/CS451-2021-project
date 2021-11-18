@@ -19,6 +19,7 @@ import java.lang.Thread;
 
 public class PerfectLink extends Thread {
 
+    private static final int PORT_PREFIX = 11000;
     private Thread receiveThread;
     private Thread resendAcksThread;
     private FairLossLink flLink;
@@ -65,27 +66,32 @@ public class PerfectLink extends Thread {
     } */
 
     public void sendMultiple(Message message, ArrayList<String> destinationIps, ArrayList<Integer> destinationPorts) throws IOException, UnknownHostException {
+        System.out.println("· Broadcasting " + message.getOverallUniqueId());
         for(int i=0; i<destinationIps.size(); ++i) {
             send(message, destinationIps.get(i), destinationPorts.get(i));
         }
+        System.out.println("");
     }
 
 
-    public void send(Message message, String destinationIp, int destinationPort) throws IOException, UnknownHostException {
+    public synchronized void send(Message message, String destinationIp, int destinationPort) throws IOException, UnknownHostException {
         
         flLink.send(message, destinationIp, destinationPort);
-        if(!this.leftToAck.containsKey(message.getOverallUniqueId())) {
-            message.setDestination(destinationIp, destinationPort);
-            this.sentLog.add("b " + String.valueOf(message.getId()));
-            this.leftToAck.put(message.getOverallUniqueId(), message);
+        String leftToAckKey = getLeftToAckKey(message.getOverallUniqueId(), destinationPort);
+        if(!this.leftToAck.containsKey(leftToAckKey)) {
+            Message newMsg = new Message(message, destinationIp, destinationPort);
+            this.sentLog.add("b " + String.valueOf(newMsg.getId()));
+            this.leftToAck.put(leftToAckKey, newMsg);
         }
     }
 
     public void resendAllLeftToAck() throws IOException, UnknownHostException {
+        System.out.println("inside resend all left to ack: " + this.leftToAck.size() + " messages left to ack");
         for (Message m : this.leftToAck.values()) {
             int port = m.getDestinationPort();
             if(port != -1) {
-                send(m, m.getDestinationIp(), port);
+                System.out.println("Resending : " + m.getOverallUniqueId() + " to " + String.valueOf(port));
+                flLink.send(m, m.getDestinationIp(), port);
             } else {
                 System.out.println("Cannot resend message " + m.getOverallUniqueId() + " as it does not have a destination.");
             }
@@ -96,31 +102,41 @@ public class PerfectLink extends Thread {
         while(this.receiving) {
             flLink.setReceiving(true);
             Message msg = flLink.receive();
+            int currentSenderId = msg.getCurrentSenderId();
             if(!msg.getContents().equals("")) {
-                deliver(msg);
+                deliver(msg, currentSenderId);
             }
         }
     }
 
-    public synchronized void deliver(Message rcvdMsg) throws UnknownHostException, IOException{
+    private String getLeftToAckKey(String msgOverallUniqueId, int destinationPort) {
+        return msgOverallUniqueId + " " + String.valueOf(destinationPort);
+    }
+
+    public synchronized void deliver(Message rcvdMsg, int currentSenderId) throws UnknownHostException, IOException{
         String senderIp = rcvdMsg.getCurrentSenderIp();
         int senderPort = rcvdMsg.getCurrentSenderPort();
+        if(senderPort != getPortFromId(currentSenderId)){
+            System.out.println("!!! Current sender actualized before delivering !!!! - PerfectLink");
+        }
         if(rcvdMsg.isMsg()) {
             String overallUniqueId = rcvdMsg.getOverallUniqueId();
             if(!delivered.contains(overallUniqueId)) {
-                this.bebObserver.deliver(rcvdMsg);
+                this.bebObserver.deliver(rcvdMsg, currentSenderId);
+                System.out.println("* " + rcvdMsg.getRcvdFromMsg() + " : received in Perfectlink, sent to beb *");
                 this.delivered.add(overallUniqueId);
-                sendAck(senderIp, senderPort, rcvdMsg.getOverallUniqueIdTab());
+                sendAck(senderIp, senderPort, overallUniqueId);
             } else {
-                System.out.println(rcvdMsg.getRcvdFromMsg() + " : already delivered");
+                System.out.println("  --> " + rcvdMsg.getRcvdFromMsg() + " : already received");
             }
         } else {
-            String msgUniqueId = rcvdMsg.getUniqueIdOfAckedMsg();
-            if(leftToAck.containsKey(msgUniqueId)) {
-                this.leftToAck.remove(msgUniqueId);
-                System.out.println("Host " + senderIp + ", " + senderPort + " acked " + msgUniqueId);
+            String msgOverallUniqueId = rcvdMsg.getOverallUniqueIdOfAckedMsg();
+            String leftToAckKey = getLeftToAckKey(msgOverallUniqueId, senderPort);
+            if(leftToAck.containsKey(leftToAckKey)) {
+                this.leftToAck.remove(leftToAckKey);
+                System.out.println("--> Host " + senderPort + ", acked m " + msgOverallUniqueId);
             } else {
-                System.out.println("Host " + senderIp + ", " + senderPort + " acked " + msgUniqueId + " but ack already received");
+                System.out.println("--> Host " + senderPort + ", acked m " + msgOverallUniqueId + " but ack already received");
             }
         } 
     }
@@ -132,10 +148,12 @@ public class PerfectLink extends Thread {
         System.out.println(msg.getRcvdFromMsg() + " : delivered");
     }*/
 
+    private int getPortFromId(int hostId) {
+        return PORT_PREFIX + hostId;
+    }
 
-    private void sendAck(String senderIp, int senderPort, int[] fullId) throws UnknownHostException, IOException {
-        String contents = "ack " + String.valueOf(fullId[0]) + " sent by " + String.valueOf(fullId[2]);
-        contents += ", original sender: " + String.valueOf(fullId[2]);
+    private void sendAck(String senderIp, int senderPort, String fullId) throws UnknownHostException, IOException {
+        String contents = "ack " + fullId;
         Message ack = new Message(this.hostId, 0, contents, false);
         flLink.send(ack, senderIp, senderPort);
     }
@@ -202,7 +220,9 @@ public class PerfectLink extends Thread {
         public void run() {
             System.out.println("Inside PerfectLink's ReceiverThread run()");
             try {
-                receive();
+                while(true) {
+                    receive();
+                }
             } catch(SocketException e) {
                 System.out.println("Issue with the socket.");
             } catch(UnknownHostException e) {
@@ -224,6 +244,7 @@ public class PerfectLink extends Thread {
             System.out.println("Inside PerfectLink's SenderThread run()");
             try {
                 while(true) { 
+                    SenderThread.sleep(1000);
                     resendAllLeftToAck();
                 }
             } catch(SocketException e) {
@@ -231,6 +252,9 @@ public class PerfectLink extends Thread {
             } catch(UnknownHostException e) {
                 System.out.println("Issue with the Host.");
             } catch(IOException e) {
+                e.printStackTrace();
+            } catch (InterruptedException e) {
+                // TODO Auto-generated catch block
                 e.printStackTrace();
             }
             System.out.println("Perfect Link of host " + hostId +  ": sender thread is over");

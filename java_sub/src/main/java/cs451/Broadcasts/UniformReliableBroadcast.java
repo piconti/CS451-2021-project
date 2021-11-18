@@ -4,6 +4,7 @@ package cs451.Broadcasts;
 import cs451.*;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
 import java.io.IOException;
 import java.net.UnknownHostException;
 
@@ -12,33 +13,37 @@ public class UniformReliableBroadcast implements Observer {
     private static final int PORT_PREFIX = 11000;
 
     private BestEffortBroadcast beb;
-    private Observer fifoObserver;
+    //private Observer fifoObserver;
     private int port;
     private int hostId;
     private String ip;
     private HashMap<Integer, String> systemHosts = new HashMap<Integer, String>();
     private ArrayList<String> delivered = new ArrayList<>();
-    private HashMap<Integer, ArrayList<Message>> pending = new HashMap<Integer, ArrayList<Message>>();
-    private HashMap<String, ArrayList<Integer>> ack = new HashMap<String, ArrayList<Integer>>();
+    private ArrayList<String> log = new ArrayList<>();
+    private ConcurrentHashMap<Integer, ArrayList<Message>> pending = new ConcurrentHashMap<Integer, ArrayList<Message>>();
+    private ConcurrentHashMap<String, ArrayList<Integer>> ack = new ConcurrentHashMap<String, ArrayList<Integer>>();
 
-    public UniformReliableBroadcast(int hostId, HashMap<Integer, String> systemHosts, Observer fifoObserver) throws IOException {
+    public UniformReliableBroadcast(int hostId, HashMap<Integer, String> systemHosts) throws IOException {//, Observer fifoObserver) throws IOException {
         this.hostId = hostId;
         this.port = getPortFromId(hostId);
         this.ip = systemHosts.get(this.hostId);
         this.systemHosts = systemHosts;
         this.beb = new BestEffortBroadcast(this.hostId, this.systemHosts, this);
-        this.fifoObserver = fifoObserver;
+        //this.fifoObserver = fifoObserver;
     }
 
     public void broadcast(Message msg) throws IOException, UnknownHostException {
         addToPending(this.hostId, msg);
-        //deliver(msg); // what should be in log is msg is being re-broadcast: original sender, new sender??
+        this.log.add("b " + String.valueOf(msg.getId()));
         this.beb.broadcast(msg);
     }
 
     @Override
-    public void deliver(Message msg) throws UnknownHostException, IOException {
-        int currentSenderId = msg.getCurrentSenderId();
+    public void deliver(Message msg, int currentSenderId) throws UnknownHostException, IOException {
+        int senderId = msg.getCurrentSenderId();
+        if(senderId != currentSenderId){
+            System.out.println("!!! Current sender actualized before delivering !!!! - URB for m: " + msg.getOverallUniqueId());
+        }
         addtoAck(msg, currentSenderId);
         if (!isPending(msg)) {
             broadcast(msg);
@@ -51,11 +56,19 @@ public class UniformReliableBroadcast implements Observer {
             for(Message msg: this.pending.get(processId)) {
                 String msgOgUniqueId = msg.getOriginalUniqueId();
                 if(canDeliver(msgOgUniqueId) && !this.delivered.contains(msgOgUniqueId)) {
-                    this.delivered.add(msgOgUniqueId);
-                    this.fifoObserver.deliver(msg); // deliver pour URB ça veut dire quoi???
+                    deliverToLog(msg);
+                    //this.delivered.add(msgOgUniqueId);
+                    //this.fifoObserver.deliver(msg, msg.getCurrentSenderId()); 
+                    //System.out.println("* * * " + msg.getRcvdFromMsg() + " : delivered to URB * * *");
                 }
             }
         }
+    }
+
+    private void deliverToLog(Message msg) {
+        this.log.add("d " + msg.getOriginalHostId() + " " + String.valueOf(msg.getId()));
+        this.delivered.add(msg.getOriginalUniqueId());
+        System.out.println("* * * *" + msg.getRcvdFromMsg() + " : delivered to URB * * * *");
     }
 
     private int getPortFromId(int hostId) {
@@ -64,7 +77,16 @@ public class UniformReliableBroadcast implements Observer {
  
     private boolean canDeliver(String msgOriginalUniqueId) {
         int N = this.systemHosts.size();
-        return (this.ack.get(msgOriginalUniqueId)).size() > (N/2.0);
+        /*System.out.println("******* INSIDE CANDELIVER OF URB: KEYS OF ACK: ********");
+        for(String key: this.ack.keySet()) {
+            System.out.println("*******   - " + key);
+        }*/
+        try {
+            return (this.ack.get(msgOriginalUniqueId)).size() > (N/2.0);
+        } catch(NullPointerException e) {
+            System.out.println("Null pointer exception inside CanDeliver of URB: msg " + msgOriginalUniqueId + " is not in the keySet of ack." );
+            return false;
+        }
     }
     
     private void addToPending(int id, Message msg) {
@@ -105,7 +127,7 @@ public class UniformReliableBroadcast implements Observer {
         return this.port;
     }
 
-    public int gethostId() {
+    public int getHostId() {
         return this.hostId;
     }
 
@@ -115,6 +137,18 @@ public class UniformReliableBroadcast implements Observer {
 
     public HashMap<Integer, String>  getSystemHosts() {
         return this.systemHosts;
+    }
+
+    public boolean isClosed() {
+        return this.beb.isClosed();
+    }
+
+    public void close() {
+        this.beb.close();
+    }
+
+    public ArrayList<String> getLog() {
+        return this.log;
     }
 
 }
