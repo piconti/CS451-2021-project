@@ -115,5 +115,4 @@ public class BestEffortBroadcast implements Observer {
         return this.hostId;
     }
 
-
 }

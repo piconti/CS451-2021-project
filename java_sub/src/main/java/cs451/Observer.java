@@ -7,4 +7,5 @@ import java.net.UnknownHostException;
 public interface Observer {
     
     public void deliver(Message msg, int currentSederId) throws UnknownHostException, IOException;
+
 }

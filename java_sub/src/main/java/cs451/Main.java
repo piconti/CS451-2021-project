@@ -16,8 +16,8 @@ public class Main {
     public static Parser parser;
     public static PerfectLink link;
     public static FifoReliableBroadcast fifo;
-    public static BestEffortBroadcast beb;
-    public static UniformReliableBroadcast urb;
+    //public static BestEffortBroadcast beb;
+    //public static UniformReliableBroadcast urb;
     public static int numMessagesToSend;
     public static int receiverHost;
     public static ArrayList<String> fifoLog = new ArrayList<>();
@@ -30,7 +30,7 @@ public class Main {
         System.out.println("Immediately stopping network packet processing.");
         try {
             System.out.println("Writing output.");
-            fifoLog = urb.getLog();
+            fifoLog = fifo.getLog();
             parser.writeToOutput(fifoLog);
             //deliveredLog = fifo.getDeliveredLog();
             //parser.writeToOutput(senderLog);
@@ -48,9 +48,9 @@ public class Main {
                 }
             }*/
             //Thread.sleep(2000);
-            if(!urb.isClosed()) {
-                System.out.println("closing link " + urb.getHostId());
-                urb.close();
+            if(!fifo.isClosed()) {
+                System.out.println("closing link " + fifo.getHostId());
+                fifo.close();
             }
         } catch (Exception e) {
             System.out.println("Something went wrong when wirting to the output file.");
@@ -119,7 +119,7 @@ public class Main {
             systemHosts.put(host.getId(), host.getIp());
         }
 
-        urb = new UniformReliableBroadcast(parser.myId(), systemHosts);
+        fifo = new FifoReliableBroadcast(parser.myId(), systemHosts);
         //beb = new BestEffortBroadcast(parser.myId(), systemHosts, urbObserver)
         //Perfectlink = new PerfectLink("localhost", currentHostPort, parser.myId());
 
@@ -130,8 +130,8 @@ public class Main {
         //Thread.sleep(20000);
         while(currentM<=numMessagesToSend) {// && link.continueSending()) {
             String contents = "m " + String.valueOf(currentM);
-            Message m = new Message(urb.getHostId(), currentM, contents, true);
-            urb.broadcast(m);
+            Message m = new Message(fifo.getHostId(), currentM, contents, true);
+            fifo.broadcast(m);
             currentM++;
             Thread.sleep(500);
         }

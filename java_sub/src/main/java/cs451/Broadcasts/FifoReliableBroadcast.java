@@ -29,10 +29,10 @@ public class FifoReliableBroadcast implements Observer {
         //this.port = getPortFromId(hostId);
         //this.ip = systemHosts.get(this.hostId);
         this.systemHosts = systemHosts;
-        this.urb = new UniformReliableBroadcast(this.hostId, this.systemHosts);//, this);
+        this.urb = new UniformReliableBroadcast(this.hostId, this.systemHosts, this);
         //this.loggerObserver = loggerObserver;
         this.next = new int[systemHosts.size()];
-        for(int i = 0; i<next.length-1; ++i) {
+        for(int i = 0; i<next.length; ++i) {
             this.next[i] = 1;
         }
     }
@@ -50,26 +50,33 @@ public class FifoReliableBroadcast implements Observer {
         String originalUniqueId = msg.getOriginalUniqueId();
         int orginialSenderId = msg.getOriginalHostId();
         this.pending.put(originalUniqueId, msg);
+        System.out.println("***FIFO message : " + originalUniqueId);
         String msgUniqueIdToDeliver = getMsgOgUniqueId(orginialSenderId);
+        System.out.println("***FIFO2 msgUniqueIdToDeliver: " + msgUniqueIdToDeliver + " in pending: " + this.pending.keySet().contains(msgUniqueIdToDeliver));
         while(this.pending.keySet().contains(msgUniqueIdToDeliver)) {
             this.next[orginialSenderId-1] += 1;
             Message msgToDeliver = this.pending.get(msgUniqueIdToDeliver);
             this.pending.remove(msgUniqueIdToDeliver);
             //this.loggerObserver.deliver(msgToDeliver);
-            deliverToLog(msgToDeliver);
+            deliverToLog(msgToDeliver.getOriginalUniqueId());
             msgUniqueIdToDeliver = getMsgOgUniqueId(orginialSenderId);
+            System.out.println("***FIFO3 msgUniqueIdToDeliver: " + msgUniqueIdToDeliver + " in pending: " + this.pending.keySet().contains(msgUniqueIdToDeliver));
         }
     }
+
 
     /*
     private int getPortFromId(int hostId) {
         return PORT_PREFIX + hostId;
     }*/
 
-    private void deliverToLog(Message msg) {
-        this.log.add("d " + msg.getOriginalHostId() + " " + String.valueOf(msg.getId()));
-        this.delivered.add(msg.getOverallUniqueId());
-        System.out.println("* * * *" + msg.getRcvdFromMsg() + " : delivered to FIFO * * * *");
+    private void deliverToLog(String msgOgUniqueId) {
+        String[] splitOgUniqueId = msgOgUniqueId.split("\\s+");
+        this.log.add("d " + splitOgUniqueId[1] + " " + splitOgUniqueId[0]);
+        this.delivered.add(msgOgUniqueId);
+        System.out.println("");
+        System.out.println("************ Delivered " + msgOgUniqueId + " *****************");
+        System.out.println("");
     }
     
     /*
