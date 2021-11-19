@@ -40,6 +40,7 @@ public class BestEffortBroadcast implements Observer {
             destinationPorts.add(getPortFromId(destId));
             destinationIps.add(this.systemHosts.get(destId));
         }
+        System.out.println("·· Broadcasting m " + msg.getOverallUniqueId() + " with BEB ··");
         this.pLink.sendMultiple(message, destinationIps, destinationPorts);
     }
 

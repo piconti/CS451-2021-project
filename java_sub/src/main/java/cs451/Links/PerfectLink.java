@@ -66,6 +66,7 @@ public class PerfectLink extends Thread {
     } */
 
     public void sendMultiple(Message message, ArrayList<String> destinationIps, ArrayList<Integer> destinationPorts) throws IOException, UnknownHostException {
+        System.out.println("");
         System.out.println("· Broadcasting " + message.getOverallUniqueId());
         for(int i=0; i<destinationIps.size(); ++i) {
             send(message, destinationIps.get(i), destinationPorts.get(i));
@@ -81,12 +82,13 @@ public class PerfectLink extends Thread {
         if(!this.leftToAck.containsKey(leftToAckKey)) {
             Message newMsg = new Message(message, destinationIp, destinationPort);
             this.sentLog.add("b " + String.valueOf(newMsg.getId()));
+            System.out.println("____ Putting msg: " + leftToAckKey + " in leftToAck");
             this.leftToAck.put(leftToAckKey, newMsg);
         }
     }
 
     public void resendAllLeftToAck() throws IOException, UnknownHostException {
-        System.out.println("inside resend all left to ack: " + this.leftToAck.size() + " messages left to ack");
+        System.out.println("____ Inside resend all left to ack: " + this.leftToAck.size() + " messages left to ack");
         for (Message m : this.leftToAck.values()) {
             int port = m.getDestinationPort();
             if(port != -1) {
@@ -122,10 +124,10 @@ public class PerfectLink extends Thread {
         if(rcvdMsg.isMsg()) {
             String overallUniqueId = rcvdMsg.getOverallUniqueId();
             if(!delivered.contains(overallUniqueId)) {
-                this.bebObserver.deliver(rcvdMsg, currentSenderId);
-                System.out.println("* " + rcvdMsg.getRcvdFromMsg() + " : received in Perfectlink, sent to beb *");
-                this.delivered.add(overallUniqueId);
                 sendAck(senderIp, senderPort, overallUniqueId);
+                this.bebObserver.deliver(rcvdMsg, currentSenderId);
+                System.out.println("--> * " + rcvdMsg.getRcvdFromMsg() + " : received in Perfectlink, sent to beb *");
+                this.delivered.add(overallUniqueId);
             } else {
                 System.out.println("  --> " + rcvdMsg.getRcvdFromMsg() + " : already received");
             }
@@ -133,10 +135,11 @@ public class PerfectLink extends Thread {
             String msgOverallUniqueId = rcvdMsg.getOverallUniqueIdOfAckedMsg();
             String leftToAckKey = getLeftToAckKey(msgOverallUniqueId, senderPort);
             if(leftToAck.containsKey(leftToAckKey)) {
+                System.out.println("____ Removing msg: " + leftToAckKey + " from leftToAck");
                 this.leftToAck.remove(leftToAckKey);
                 System.out.println("--> Host " + senderPort + ", acked m " + msgOverallUniqueId);
             } else {
-                System.out.println("--> Host " + senderPort + ", acked m " + msgOverallUniqueId + " but ack already received");
+                System.out.println("  --> Host " + senderPort + ", acked m " + msgOverallUniqueId + " but ack already received");
             }
         } 
     }
@@ -244,7 +247,7 @@ public class PerfectLink extends Thread {
             System.out.println("Inside PerfectLink's SenderThread run()");
             try {
                 while(true) { 
-                    SenderThread.sleep(1000);
+                    SenderThread.sleep(2000);
                     resendAllLeftToAck();
                 }
             } catch(SocketException e) {

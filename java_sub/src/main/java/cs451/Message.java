@@ -218,10 +218,11 @@ public class Message implements Serializable {
     public String getRcvdFromMsg() {
         String rcvd = "rcvd from host " + this.senderId;
         if(this.senderId != this.originalHostId) {
-            return rcvd + " (original host: " + this.originalHostId + "): " + this.getContents();
+            rcvd += " (original host: " + this.originalHostId + "): ";
         } else {
-            return rcvd + ": [" + this.getContents() + "]";
+            rcvd += " (original sender host): ";
         }
+        return rcvd + ": [" + this.getContents() + "]";
     }
 
     private int getPortFromId(int hostId) {
