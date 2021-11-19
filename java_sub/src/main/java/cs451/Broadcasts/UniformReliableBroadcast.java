@@ -20,7 +20,7 @@ public class UniformReliableBroadcast implements Observer {
     private HashMap<Integer, String> systemHosts = new HashMap<Integer, String>();
     private ArrayList<String> delivered = new ArrayList<>();
     private ArrayList<String> log = new ArrayList<>();
-    private ConcurrentHashMap<Integer, HashMap<String, Message>> pending = new ConcurrentHashMap<Integer, HashMap<String, Message>>();
+    private ConcurrentHashMap<Integer, ArrayList<String>> pending = new ConcurrentHashMap<Integer, ArrayList<String>>();
     private ConcurrentHashMap<String, ArrayList<Integer>> ack = new ConcurrentHashMap<String, ArrayList<Integer>>();
 
     public UniformReliableBroadcast(int hostId, HashMap<Integer, String> systemHosts) throws IOException {//, Observer fifoObserver) throws IOException {
@@ -57,12 +57,12 @@ public class UniformReliableBroadcast implements Observer {
 
     public void deliverPendings() throws UnknownHostException, IOException { //à avoir qui run constamment?
         for (int processId : this.pending.keySet()) {
-            for(String msgOgUniqueId: this.pending.get(processId).keySet()) {
+            for(String msgOgUniqueId: this.pending.get(processId)) {
                 //String msgOgUniqueId = msg.getOriginalUniqueId();
                 if(canDeliver(msgOgUniqueId) && !this.delivered.contains(msgOgUniqueId)) {
-                    Message message = this.pending.get(processId).get(msgOgUniqueId);
-                    System.out.println("Delivering " + msgOgUniqueId);
-                    deliverToLog(message);
+                    //Message message = this.pending.get(processId).get(msgOgUniqueId);
+                    
+                    deliverToLog(msgOgUniqueId);
                     //this.delivered.add(msgOgUniqueId);
                     //this.fifoObserver.deliver(msg, msg.getCurrentSenderId()); 
                     //System.out.println("* * * " + msg.getRcvdFromMsg() + " : delivered to URB * * *");
@@ -79,10 +79,15 @@ public class UniformReliableBroadcast implements Observer {
         }
     }
 
-    private void deliverToLog(Message msg) {
-        this.log.add("d " + msg.getOriginalHostId() + " " + String.valueOf(msg.getId()));
-        this.delivered.add(msg.getOriginalUniqueId());
-        System.out.println("* * * *" + msg.getRcvdFromMsg() + " : delivered to URB * * * *");
+    private void deliverToLog(String msgOgUniqueId) {
+        String[] splitOgUniqueId = msgOgUniqueId.split("\\s+");
+        this.log.add("d " + splitOgUniqueId[1] + " " + splitOgUniqueId[0]);
+        this.delivered.add(msgOgUniqueId);
+        System.out.println("************ Delivered " + msgOgUniqueId + " *****************");
+    }
+
+    private String[] getMsgOgUniqueIdAsArray(String ogUniqueId) {
+        return ogUniqueId.split("\\s+");
     }
 
     private int getPortFromId(int hostId) {
@@ -107,10 +112,10 @@ public class UniformReliableBroadcast implements Observer {
     
     private void addToPending(int id, Message msg) {
         if(this.pending.keySet().contains(id)) {
-            this.pending.get(id).put(msg.getOriginalUniqueId(), msg);
+            this.pending.get(id).add(msg.getOriginalUniqueId());
         } else {
-            HashMap<String, Message> pendingForId = new HashMap<String, Message>();
-            pendingForId.put(msg.getOriginalUniqueId(), msg);
+            ArrayList<String> pendingForId = new ArrayList<>();
+            pendingForId.add(msg.getOriginalUniqueId());
             this.pending.put(id, pendingForId);
         }
     }
@@ -118,7 +123,7 @@ public class UniformReliableBroadcast implements Observer {
     private boolean isPending(Message msg) {
         int ogHostId = msg.getOriginalHostId();
         if(this.pending.keySet().contains(ogHostId)) {
-            return this.pending.get(ogHostId).keySet().contains(msg.getOriginalUniqueId());
+            return this.pending.get(ogHostId).contains(msg.getOriginalUniqueId());
         } else {
             return false;
         }
