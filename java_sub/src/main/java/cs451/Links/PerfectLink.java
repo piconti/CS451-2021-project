@@ -66,12 +66,12 @@ public class PerfectLink extends Thread {
     } */
 
     public void sendMultiple(Message message, ArrayList<String> destinationIps, ArrayList<Integer> destinationPorts) throws IOException, UnknownHostException {
-        System.out.println("");
-        System.out.println("· Broadcasting " + message.getOverallUniqueId());
+        //System.out.println("");
+        //System.out.println("\n· Broadcasting " + message.getOverallUniqueId());
         for(int i=0; i<destinationIps.size(); ++i) {
             send(message, destinationIps.get(i), destinationPorts.get(i));
         }
-        System.out.println("");
+        //System.out.println("");
     }
 
 
@@ -82,17 +82,17 @@ public class PerfectLink extends Thread {
         if(!this.leftToAck.containsKey(leftToAckKey)) {
             Message newMsg = new Message(message, destinationIp, destinationPort);
             this.sentLog.add("b " + String.valueOf(newMsg.getId()));
-            System.out.println("____ Putting msg: " + leftToAckKey + " in leftToAck");
+            //System.out.println("____ Putting msg: " + leftToAckKey + " in leftToAck");
             this.leftToAck.put(leftToAckKey, newMsg);
         }
     }
 
     public void resendAllLeftToAck() throws IOException, UnknownHostException {
-        System.out.println("____ Inside resend all left to ack: " + this.leftToAck.size() + " messages left to ack");
+        //System.out.println("____ Inside resend all left to ack: " + this.leftToAck.size() + " messages left to ack");
         for (Message m : this.leftToAck.values()) {
             int port = m.getDestinationPort();
             if(port != -1) {
-                System.out.println("Resending : " + m.getOverallUniqueId() + " to " + String.valueOf(port));
+                //System.out.println("Resending : " + m.getOverallUniqueId() + " to " + String.valueOf(port));
                 flLink.send(m, m.getDestinationIp(), port);
             } else {
                 System.out.println("Cannot resend message " + m.getOverallUniqueId() + " as it does not have a destination.");
@@ -126,21 +126,21 @@ public class PerfectLink extends Thread {
             if(!delivered.contains(overallUniqueId)) {
                 sendAck(senderIp, senderPort, overallUniqueId);
                 this.bebObserver.deliver(rcvdMsg, currentSenderId);
-                System.out.println("--> * " + rcvdMsg.getRcvdFromMsg() + " : received in Perfectlink, sent to beb *");
+                //System.out.println("--> * " + rcvdMsg.getRcvdFromMsg() + " : received in Perfectlink, sent to beb *");
                 this.delivered.add(overallUniqueId);
-            } else {
-                System.out.println("  --> " + rcvdMsg.getRcvdFromMsg() + " : already received");
-            }
+            } //else {
+                //System.out.println("  --> " + rcvdMsg.getRcvdFromMsg() + " : already received");
+            //}
         } else {
             String msgOverallUniqueId = rcvdMsg.getOverallUniqueIdOfAckedMsg();
             String leftToAckKey = getLeftToAckKey(msgOverallUniqueId, senderPort);
             if(leftToAck.containsKey(leftToAckKey)) {
-                System.out.println("____ Removing msg: " + leftToAckKey + " from leftToAck");
+                //System.out.println("____ Removing msg: " + leftToAckKey + " from leftToAck");
                 this.leftToAck.remove(leftToAckKey);
-                System.out.println("--> Host " + senderPort + ", acked m " + msgOverallUniqueId);
-            } else {
-                System.out.println("  --> Host " + senderPort + ", acked m " + msgOverallUniqueId + " but ack already received");
-            }
+                //System.out.println("--> Host " + senderPort + ", acked m " + msgOverallUniqueId);
+            } //else {
+                //System.out.println("  --> Host " + senderPort + ", acked m " + msgOverallUniqueId + " but ack already received");
+            //}
         } 
     }
 
@@ -257,7 +257,6 @@ public class PerfectLink extends Thread {
             } catch(IOException e) {
                 e.printStackTrace();
             } catch (InterruptedException e) {
-                // TODO Auto-generated catch block
                 e.printStackTrace();
             }
             System.out.println("Perfect Link of host " + hostId +  ": sender thread is over");

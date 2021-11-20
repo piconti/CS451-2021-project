@@ -20,7 +20,7 @@ public class UniformReliableBroadcast implements Observer {
     private HashMap<Integer, String> systemHosts = new HashMap<Integer, String>();
     private ArrayList<String> delivered = new ArrayList<>();
     private ArrayList<String> log = new ArrayList<>();
-    private ConcurrentHashMap<Integer, HashMap<String, Message>> pending = new ConcurrentHashMap<Integer, HashMap<String, Message>>();
+    private ConcurrentHashMap<Integer, ConcurrentHashMap<String, Message>> pending = new ConcurrentHashMap<Integer, ConcurrentHashMap<String, Message>>();
     private ConcurrentHashMap<String, ArrayList<Integer>> ack = new ConcurrentHashMap<String, ArrayList<Integer>>();
 
     public UniformReliableBroadcast(int hostId, HashMap<Integer, String> systemHosts, Observer fifoObserver) throws IOException {
@@ -35,7 +35,7 @@ public class UniformReliableBroadcast implements Observer {
     public void broadcast(Message msg) throws IOException, UnknownHostException {
         addToPending(this.hostId, msg);
         this.log.add("b " + String.valueOf(msg.getId()));
-        System.out.println("··· Broadcasting m " + msg.getOverallUniqueId() + " with URB ···");
+        //System.out.println("··· Broadcasting m " + msg.getOverallUniqueId() + " with URB ···");
         this.beb.broadcast(msg);
     }
 
@@ -107,7 +107,7 @@ public class UniformReliableBroadcast implements Observer {
             //System.out.println("this.ack.get(msgOriginalUniqueId).size() > (N/2.0): " + String.valueOf(this.ack.get(msgOriginalUniqueId).size()) + " > " + String.valueOf(N/2.0));
             return (this.ack.get(msgOriginalUniqueId)).size() > (N/2.0);
         } catch(NullPointerException e) {
-            System.out.println("Null pointer exception inside CanDeliver of URB: msg " + msgOriginalUniqueId + " is not in the keySet of ack." );
+            //System.out.println("Null pointer exception inside CanDeliver of URB: msg " + msgOriginalUniqueId + " is not in the keySet of ack." );
             return false;
         }
     }
@@ -116,7 +116,7 @@ public class UniformReliableBroadcast implements Observer {
         if(this.pending.keySet().contains(id)) {
             this.pending.get(id).put(msg.getOriginalUniqueId(), msg);
         } else {
-            HashMap<String, Message> pendingForId = new HashMap<String, Message>();
+            ConcurrentHashMap<String, Message> pendingForId = new ConcurrentHashMap<String, Message>();
             pendingForId.put(msg.getOriginalUniqueId(), msg);
             this.pending.put(id, pendingForId);
         }

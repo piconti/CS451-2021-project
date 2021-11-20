@@ -47,7 +47,7 @@ public class FairLossLink {
         sendBuf = newMsg.convertToBytes(); //message.getMessage().getBytes();
         DatagramPacket packet = new DatagramPacket(sendBuf, sendBuf.length, InetAddress.getByName(destIp.split(IP_START_REGEX)[0]), destPort);
         socket.send(packet);
-        System.out.println("Sent: " + newMsg.getMessage() + " to " + String.valueOf(destPort));
+        //System.out.println("Sent: " + newMsg.getMessage() + " to " + String.valueOf(destPort));
     }
 
     private Message changeSenderIfNeeded(Message msg) {

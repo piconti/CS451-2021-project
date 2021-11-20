@@ -4,9 +4,7 @@ import java.io.IOException;
 import java.net.SocketException;
 import java.lang.ClassNotFoundException;
 import cs451.Parsers.*;
-import cs451.Broadcasts.BestEffortBroadcast;
 import cs451.Broadcasts.FifoReliableBroadcast;
-import cs451.Broadcasts.UniformReliableBroadcast;
 import cs451.Links.*;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -30,7 +28,12 @@ public class Main {
         System.out.println("Immediately stopping network packet processing.");
         try {
             System.out.println("Writing output.");
-            fifoLog = fifo.getLog();
+            try {
+                fifoLog = fifo.getLog();
+            } catch(NullPointerException e) {
+                System.out.println("NullPointerException because no log exists. Generating empty log");
+                fifoLog.add("");
+            }
             parser.writeToOutput(fifoLog);
             //deliveredLog = fifo.getDeliveredLog();
             //parser.writeToOutput(senderLog);

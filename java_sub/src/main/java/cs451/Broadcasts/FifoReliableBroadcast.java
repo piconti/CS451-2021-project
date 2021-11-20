@@ -50,9 +50,9 @@ public class FifoReliableBroadcast implements Observer {
         String originalUniqueId = msg.getOriginalUniqueId();
         int orginialSenderId = msg.getOriginalHostId();
         this.pending.put(originalUniqueId, msg);
-        System.out.println("***FIFO message : " + originalUniqueId);
+        //System.out.println("***FIFO message : " + originalUniqueId);
         String msgUniqueIdToDeliver = getMsgOgUniqueId(orginialSenderId);
-        System.out.println("***FIFO2 msgUniqueIdToDeliver: " + msgUniqueIdToDeliver + " in pending: " + this.pending.keySet().contains(msgUniqueIdToDeliver));
+        //System.out.println("***FIFO2 msgUniqueIdToDeliver: " + msgUniqueIdToDeliver + " in pending: " + this.pending.keySet().contains(msgUniqueIdToDeliver));
         while(this.pending.keySet().contains(msgUniqueIdToDeliver)) {
             this.next[orginialSenderId-1] += 1;
             Message msgToDeliver = this.pending.get(msgUniqueIdToDeliver);
@@ -60,7 +60,7 @@ public class FifoReliableBroadcast implements Observer {
             //this.loggerObserver.deliver(msgToDeliver);
             deliverToLog(msgToDeliver.getOriginalUniqueId());
             msgUniqueIdToDeliver = getMsgOgUniqueId(orginialSenderId);
-            System.out.println("***FIFO3 msgUniqueIdToDeliver: " + msgUniqueIdToDeliver + " in pending: " + this.pending.keySet().contains(msgUniqueIdToDeliver));
+            //System.out.println("***FIFO3 msgUniqueIdToDeliver: " + msgUniqueIdToDeliver + " in pending: " + this.pending.keySet().contains(msgUniqueIdToDeliver));
         }
     }
 
@@ -74,9 +74,7 @@ public class FifoReliableBroadcast implements Observer {
         String[] splitOgUniqueId = msgOgUniqueId.split("\\s+");
         this.log.add("d " + splitOgUniqueId[1] + " " + splitOgUniqueId[0]);
         this.delivered.add(msgOgUniqueId);
-        System.out.println("");
-        System.out.println("************ Delivered " + msgOgUniqueId + " *****************");
-        System.out.println("");
+        //System.out.println("\n************ Delivered " + msgOgUniqueId + " *****************\n");
     }
     
     /*
