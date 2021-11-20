@@ -11,14 +11,12 @@ import java.net.UnknownHostException;
 public class BestEffortBroadcast implements Observer {
 
     private static final int PORT_PREFIX = 11000;
-    //private static final String localIp = "localhost";
 
     private PerfectLink pLink;
     private Observer urbObserver;
     private String ip;
     private int port;
     private int hostId;
-    //private ArrayList<String> log = new ArrayList<>();
     private HashMap<Integer, String> systemHosts = new HashMap<Integer, String>();
     private ArrayList<Message> delivered = new ArrayList<>();
 
@@ -33,14 +31,12 @@ public class BestEffortBroadcast implements Observer {
 
     public void broadcast(Message msg) throws IOException, UnknownHostException {
         Message message = changeSenderIfNeeded(msg);
-        //this.log.add("b " + String.valueOf(msg.getId()));
         ArrayList<Integer> destinationPorts = new ArrayList<>();
         ArrayList<String> destinationIps = new ArrayList<>();
         for(int destId: this.systemHosts.keySet()) {
             destinationPorts.add(getPortFromId(destId));
             destinationIps.add(this.systemHosts.get(destId));
         }
-        //System.out.println("·· Broadcasting m " + msg.getOverallUniqueId() + " with BEB ··");
         this.pLink.sendMultiple(message, destinationIps, destinationPorts);
     }
 
@@ -59,8 +55,6 @@ public class BestEffortBroadcast implements Observer {
         }
         this.urbObserver.deliver(msg, currentSenderId);
         this.delivered.add(msg);
-        //deliverToLog(msg);
-        //System.out.println("* * " + msg.getRcvdFromMsg() + " : delivered to BEB * *");
     }
 
     private int getPortFromId(int hostId) {
@@ -74,13 +68,6 @@ public class BestEffortBroadcast implements Observer {
             return msg;
         }
     }
-
-    /*
-    private void deliverToLog(Message msg) {
-        this.log.add("d " + msg.getOriginalHostId() + " " + String.valueOf(msg.getId()));
-        this.delivered.add(msg);
-        System.out.println("* * * *" + msg.getRcvdFromMsg() + " : delivered to BEB * * * *");
-    }*/
 
     public PerfectLink getLink() {
         return this.pLink;
@@ -105,11 +92,6 @@ public class BestEffortBroadcast implements Observer {
     public void close() {
         this.pLink.close();
     }
-
-    /*
-    public ArrayList<String> getLog() {
-        return this.log;
-    }*/
 
     public int getHostId() {
         return this.hostId;

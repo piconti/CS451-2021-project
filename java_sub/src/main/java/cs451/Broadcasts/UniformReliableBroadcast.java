@@ -58,11 +58,8 @@ public class UniformReliableBroadcast implements Observer {
     public void deliverPendings() throws UnknownHostException, IOException { //à avoir qui run constamment?
         for (int processId : this.pending.keySet()) {
             for(String msgOgUniqueId: this.pending.get(processId).keySet()) {
-                //String msgOgUniqueId = msg.getOriginalUniqueId();
                 if(canDeliver(msgOgUniqueId) && !this.delivered.contains(msgOgUniqueId)) {
                     Message message = this.pending.get(processId).get(msgOgUniqueId);
-                    
-                    //deliverToLog(msgOgUniqueId);
                     this.delivered.add(msgOgUniqueId);
                     this.fifoObserver.deliver(message, message.getCurrentSenderId()); 
                     //System.out.println("* * * " + msg.getRcvdFromMsg() + " : delivered to URB * * *");
@@ -79,32 +76,13 @@ public class UniformReliableBroadcast implements Observer {
         }
     }
 
-    /*
-    private void deliverToLog(String msgOgUniqueId) {
-        String[] splitOgUniqueId = msgOgUniqueId.split("\\s+");
-        this.log.add("d " + splitOgUniqueId[1] + " " + splitOgUniqueId[0]);
-        this.delivered.add(msgOgUniqueId);
-        System.out.println("************ Delivered " + msgOgUniqueId + " *****************");
-    }*/
-
-    /*
-    private String[] getMsgOgUniqueIdAsArray(String ogUniqueId) {
-        return ogUniqueId.split("\\s+");
-    }*/
-
     private int getPortFromId(int hostId) {
         return PORT_PREFIX + hostId;
     }
  
     private boolean canDeliver(String msgOriginalUniqueId) {
         int N = this.systemHosts.size();
-        /*System.out.println("******* INSIDE CANDELIVER OF URB: KEYS OF ACK: ********");
-        for(String key: this.ack.keySet()) {
-            System.out.println("*******   - " + key);
-        }*/
         try {
-            //System.out.println("inside canDeliver for m " + msgOriginalUniqueId);
-            //System.out.println("this.ack.get(msgOriginalUniqueId).size() > (N/2.0): " + String.valueOf(this.ack.get(msgOriginalUniqueId).size()) + " > " + String.valueOf(N/2.0));
             return (this.ack.get(msgOriginalUniqueId)).size() > (N/2.0);
         } catch(NullPointerException e) {
             //System.out.println("Null pointer exception inside CanDeliver of URB: msg " + msgOriginalUniqueId + " is not in the keySet of ack." );

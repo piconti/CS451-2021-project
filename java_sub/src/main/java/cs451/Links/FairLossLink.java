@@ -43,8 +43,7 @@ public class FairLossLink {
     public void send(Message message, String destIp, int destPort) throws IOException, UnknownHostException {
         connectSocket();
         Message newMsg = changeSenderIfNeeded(message);
-        //message.addCurrentSenderId(this.hostId);
-        sendBuf = newMsg.convertToBytes(); //message.getMessage().getBytes();
+        sendBuf = newMsg.convertToBytes(); 
         DatagramPacket packet = new DatagramPacket(sendBuf, sendBuf.length, InetAddress.getByName(destIp.split(IP_START_REGEX)[0]), destPort);
         socket.send(packet);
         //System.out.println("Sent: " + newMsg.getMessage() + " to " + String.valueOf(destPort));

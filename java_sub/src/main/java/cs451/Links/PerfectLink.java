@@ -14,7 +14,6 @@ import java.io.IOException;
 import java.net.SocketException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.lang.Thread;
-//import java.lang.Runnable;
 
 
 public class PerfectLink extends Thread {
@@ -32,7 +31,6 @@ public class PerfectLink extends Thread {
     private ArrayList<String> deliveredLog = new ArrayList<>();
     private ArrayList<String> sentLog = new ArrayList<>();
     private boolean receiving = true; // ajouter atomic
-    //private boolean continueSending = true;
 
     public PerfectLink(String ip, int port, int hostId, Observer bebObserver) throws IOException {
         this.flLink = new FairLossLink(ip, port, hostId);
@@ -48,30 +46,12 @@ public class PerfectLink extends Thread {
         resendAcksThread.start();
     }
 
-    /*
-    public void run() {
-        System.out.println("Inside PerfectLink's run()");
-        try {
-            receive();
-        } catch(SocketException e) {
-            System.out.println("Issue with the socket.");
-        } catch(UnknownHostException e) {
-            System.out.println("Issue with the Host.");
-        } catch(IOException e) {
-            e.printStackTrace();
-        } catch(ClassNotFoundException e) {
-            e.printStackTrace();
-        }
-        System.out.println("Perfect Link of host " + this.hostId +  ": receive thread is over");
-    } */
 
     public void sendMultiple(Message message, ArrayList<String> destinationIps, ArrayList<Integer> destinationPorts) throws IOException, UnknownHostException {
-        //System.out.println("");
         //System.out.println("\n· Broadcasting " + message.getOverallUniqueId());
         for(int i=0; i<destinationIps.size(); ++i) {
             send(message, destinationIps.get(i), destinationPorts.get(i));
         }
-        //System.out.println("");
     }
 
 
@@ -143,13 +123,6 @@ public class PerfectLink extends Thread {
             //}
         } 
     }
-
-    /*
-    private synchronized void addToDelivered(String overallUniqueId) {
-        //this.deliveredLog.add("d " + msg.getOriginalHostId() + " " + String.valueOf(msg.getId()));
-        this.delivered.add(overallUniqueId);
-        System.out.println(msg.getRcvdFromMsg() + " : delivered");
-    }*/
 
     private int getPortFromId(int hostId) {
         return PORT_PREFIX + hostId;
