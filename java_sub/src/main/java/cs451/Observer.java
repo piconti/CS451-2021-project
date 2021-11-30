@@ -6,6 +6,9 @@ import java.net.UnknownHostException;
 
 public interface Observer {
     
-    public void deliver(Message msg, int currentSederId) throws UnknownHostException, IOException;
+    public void deliver(Message msg, int currentSenderId) throws UnknownHostException, IOException;
+
+
+    public void deliver(Message msg) throws UnknownHostException, IOException;
 
 }

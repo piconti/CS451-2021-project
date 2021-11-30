@@ -33,7 +33,10 @@ public class FifoReliableBroadcast implements Observer {
     }
 
     @Override
-    public void deliver(Message msg, int currentSenderId) throws UnknownHostException, IOException {
+    public void deliver(Message msg, int currentSenderId) throws UnknownHostException, IOException {}
+
+    @Override
+    public void deliver(Message msg) throws UnknownHostException, IOException {
         String originalUniqueId = msg.getOriginalUniqueId();
         int orginialSenderId = msg.getOriginalHostId();
         this.pending.put(originalUniqueId, msg);

@@ -57,6 +57,9 @@ public class BestEffortBroadcast implements Observer {
         this.delivered.add(msg);
     }
 
+    @Override
+    public void deliver(Message msg) throws UnknownHostException, IOException {}
+
     private int getPortFromId(int hostId) {
         return PORT_PREFIX + hostId;
     }

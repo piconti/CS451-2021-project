@@ -13,7 +13,7 @@ public class UniformReliableBroadcast implements Observer {
     private static final int PORT_PREFIX = 11000;
 
     private BestEffortBroadcast beb;
-    private Observer fifoObserver;
+    private Observer observer;
     private int port;
     private int hostId;
     private String ip;
@@ -23,13 +23,13 @@ public class UniformReliableBroadcast implements Observer {
     private ConcurrentHashMap<Integer, ConcurrentHashMap<String, Message>> pending = new ConcurrentHashMap<Integer, ConcurrentHashMap<String, Message>>();
     private ConcurrentHashMap<String, ArrayList<Integer>> ack = new ConcurrentHashMap<String, ArrayList<Integer>>();
 
-    public UniformReliableBroadcast(int hostId, HashMap<Integer, String> systemHosts, Observer fifoObserver) throws IOException {
+    public UniformReliableBroadcast(int hostId, HashMap<Integer, String> systemHosts, Observer observer) throws IOException {
         this.hostId = hostId;
         this.port = getPortFromId(hostId);
         this.ip = systemHosts.get(this.hostId);
         this.systemHosts = systemHosts;
         this.beb = new BestEffortBroadcast(this.hostId, this.systemHosts, this);
-        this.fifoObserver = fifoObserver;
+        this.observer = observer;
     }
 
     public void broadcast(Message msg) throws IOException, UnknownHostException {
@@ -55,14 +55,18 @@ public class UniformReliableBroadcast implements Observer {
         deliverPendings();
     }
 
+
+    @Override
+    public void deliver(Message msg) throws UnknownHostException, IOException {}
+
     public void deliverPendings() throws UnknownHostException, IOException { //à avoir qui run constamment?
         for (int processId : this.pending.keySet()) {
             for(String msgOgUniqueId: this.pending.get(processId).keySet()) {
                 if(canDeliver(msgOgUniqueId) && !this.delivered.contains(msgOgUniqueId)) {
                     Message message = this.pending.get(processId).get(msgOgUniqueId);
                     this.delivered.add(msgOgUniqueId);
-                    this.fifoObserver.deliver(message, message.getCurrentSenderId()); 
-                    //System.out.println("* * * " + msg.getRcvdFromMsg() + " : delivered to URB * * *");
+                    //this.fifoObserver.deliver(message); 
+                    this.observer.deliver(message);
                 }
             }
         }

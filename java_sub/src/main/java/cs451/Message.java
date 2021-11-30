@@ -29,6 +29,7 @@ public class Message implements Serializable {
     private int senderId;
     private String currentSenderIp;
     private int fifoSeqNum;
+    private int[] clock;
     //private static ByteArrayOutputStream bos = new ByteArrayOutputStream();
     //private static ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
 
@@ -48,6 +49,7 @@ public class Message implements Serializable {
         this.contents = msgToCopy.getContents();
         this.msg = msgToCopy.isMsg();
         this.senderId = newSenderId;
+        this.clock = msgToCopy.getClock();
         //this.senderIds.add(this.senderId);
     }
 
@@ -59,6 +61,7 @@ public class Message implements Serializable {
         this.senderId = msgToCopy.getCurrentSenderId();
         this.destinationIp = destinationIp;
         this.destinationPort = destinationPort;
+        this.clock = msgToCopy.getClock();
         //this.senderIds.add(this.senderId);
     }
 
@@ -140,6 +143,14 @@ public class Message implements Serializable {
             System.out.println("the destination ip of the message was not defined.");
             return "localhost";
         }
+    }
+
+    public void setClock(int[] newClock) {
+        this.clock = newClock;
+    }
+
+    public int[] getClock() {
+        return this.clock;
     }
 
     /* // TODO delete?
