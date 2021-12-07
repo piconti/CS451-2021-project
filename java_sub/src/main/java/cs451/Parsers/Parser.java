@@ -79,11 +79,25 @@ public class Parser {
     }
 
     public int getNumMessages() throws FileNotFoundException, IOException {
-        return configParser.readConfig()[0];
+        return configParser.readConfigCausal().get(0)[0];
     }
 
     public int getReceiverId() throws FileNotFoundException, IOException {
         return configParser.readConfig()[1];
+    }
+
+    public int[] getDependencies(int hostId) throws FileNotFoundException, IOException {
+        int[] myDep = configParser.readConfigCausal().get(hostId);
+        int[] myDependencies = new int[myDep.length-1];
+        if(hostId == myDep[0]) {
+            for(int i=1; i<myDependencies.length; i++) {
+                myDependencies[i-1] = myDep[i];
+            }
+        } else {
+            System.out.println("problem when parsing the dependencies");
+            throw new IllegalArgumentException();
+        }
+        return myDependencies;
     }
 
     public void writeToOutput(ArrayList<String> log) throws IOException, FileNotFoundException {

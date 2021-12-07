@@ -16,6 +16,7 @@ public class Main {
     public static FifoReliableBroadcast fifo;
     //public static BestEffortBroadcast beb;
     //public static UniformReliableBroadcast urb;
+    public static int[] myDependencies;
     public static int numMessagesToSend;
     public static int receiverHost;
     public static ArrayList<String> fifoLog = new ArrayList<>();
@@ -104,10 +105,13 @@ public class Main {
         System.out.println("Doing some initialization\n");
 
         numMessagesToSend = parser.getNumMessages();
-        //receiverHost = parser.getReceiverId();
-
+        myDependencies = parser.getDependencies(parser.myId());
+        
         System.out.println("m: " + String.valueOf(numMessagesToSend));
-        //System.out.println("i: " + String.valueOf(receiverHost));
+        System.out.println("dependencies of host: " + String.valueOf(parser.myId()));
+        for(int dep: myDependencies) {
+            System.out.println("- " + String.valueOf(dep));
+        }
         System.out.println();
 
         int currentM = 1;
