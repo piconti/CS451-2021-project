@@ -3,6 +3,7 @@ package cs451.Broadcasts;
 import cs451.*;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
 import java.io.IOException;
 import java.net.UnknownHostException;
 
@@ -15,7 +16,7 @@ public class LocalizedCausalBroadcast implements Observer {
     private ArrayList<String> delivered = new ArrayList<>();
     private int[] vectorClock;
     private int[] affected;
-    private ArrayList<HashMap<int[], String>> pending = new ArrayList<HashMap<int[], String>>();
+    private ArrayList<ConcurrentHashMap<int[], String>> pending = new ArrayList<ConcurrentHashMap<int[], String>>();
     private ArrayList<ArrayList<int[]>> deliverable = new ArrayList<ArrayList<int[]>>();
     private int localSeqNumber = 0;
 
@@ -25,6 +26,8 @@ public class LocalizedCausalBroadcast implements Observer {
         this.urb = new UniformReliableBroadcast(this.hostId, this.systemHosts, this);
         this.vectorClock = new int[systemHosts.size()];
         this.affected = affected;
+        initializePending(systemHosts.size());
+        initializeDeliverable(systemHosts.size());
     }
 
     public void broadcast(Message msg) throws UnknownHostException, IOException {
@@ -34,6 +37,7 @@ public class LocalizedCausalBroadcast implements Observer {
         this.urb.broadcast(msg);
         localSeqNumber += 1;
         this.log.add("b " + String.valueOf(msg.getId()));
+        System.out.println("Broadcasting: " + String.valueOf(msg.getId()));
     }
 
     @Override
@@ -44,11 +48,23 @@ public class LocalizedCausalBroadcast implements Observer {
         addToPending(msgOgUniqueId, wClock);
         while(canDeliver()) {
             for(int p=1; p<=this.deliverable.size(); ++p) {
+                ArrayList<int[]> toRemove = new ArrayList<>();
                 for(int[] w: this.deliverable.get(p-1)) {
+                    System.out.println("this.pending.get(p-1).keySet(): " + this.pending.get(p-1).keySet());
+                    System.out.println("this.pending.get(p-1).values(): " + this.pending.get(p-1).values());
+                    System.out.print("w: ");
+                    printVectorClock(w);
                     String ogUniqueId = this.pending.get(p-1).get(w);
-                    pending.get(p-1).remove(w);
+                    
+                    this.pending.get(p-1).remove(w);
+                    toRemove.add(w);
+                    //this.deliverable.get(p-1).remove(w);
                     this.vectorClock[p-1] += 1;
+                    System.out.println("ogUniqueId in deliver, right before delivering to log: " + ogUniqueId);
                     deliverToLog(ogUniqueId);
+                }
+                for(int[] w: toRemove){
+                    this.deliverable.get(p-1).remove(w);
                 }
             }
         }
@@ -57,13 +73,34 @@ public class LocalizedCausalBroadcast implements Observer {
     @Override
     public void deliver(Message msg, int currentSederId) throws UnknownHostException, IOException {}
 
+    private void initializePending(int systemSize) {
+        for(int i=0; i<systemSize; i++) {
+            this.pending.add(new ConcurrentHashMap<int[], String>());
+        }
+    }
+
+    private void initializeDeliverable(int systemSize) {
+        for(int i=0; i<systemSize; i++) {
+            this.deliverable.add(new ArrayList<>());
+        }
+    }
+
     private void addToPending(String msgOgUniqueId, int[] wClock) {
+        System.out.print("adding ton pending: " + msgOgUniqueId + ", with vector clock: ");
+        printVectorClock(wClock);
+        System.out.print("current host clock: ");
+        printVectorClock(this.vectorClock);
         // code if original sender id
         // get original host id as int
         String[] splitOgUniqueId = msgOgUniqueId.split("\\s+");
         int hostId = Integer.parseInt(splitOgUniqueId[1]);
-        // get the hashmap of all received msg from this host at index hostId-1
-        HashMap<int[], String> currentPendingForHost = this.pending.get(hostId - 1);
+        ConcurrentHashMap<int[], String> currentPendingForHost = new ConcurrentHashMap<>();
+        try{
+            // get the hashmap of all received msg from this host at index hostId-1
+            currentPendingForHost = this.pending.get(hostId - 1);
+        } catch(IndexOutOfBoundsException e) {
+            System.out.println(e.getStackTrace());
+        }
         // add this message to the hashmap
         currentPendingForHost.put(wClock, msgOgUniqueId);
         // replace  with the new hashmap inside pending
@@ -72,9 +109,10 @@ public class LocalizedCausalBroadcast implements Observer {
 
     private boolean canDeliver() {
         // returns true if there are elements in pending corresponding to condition. puts them inside deliverable
+        System.out.println("deliverable.size: " + this.deliverable.size() + ", deliverable.isEmpty(): " + deliverableIsEmpty());
 
         // if deliverable is not empty, don't update it and empty it before
-        if(this.deliverable.isEmpty()) {
+        if(deliverableIsEmpty()) {
             // for each host in the system
             for(int p=1; p<=this.pending.size(); ++p) {
                                                             //-> which one???
@@ -91,13 +129,23 @@ public class LocalizedCausalBroadcast implements Observer {
                     // if W ≤ V and W not already in deliverable, add it
                     if(isSmallerThanClock(w) && !deliverableForP.contains(w)) {
                         deliverableForP.add(w);
+                        System.out.println("deliverable.size: " + this.deliverable.size() + ", deliverable.isEmpty(): " + deliverableIsEmpty());
                         this.deliverable.set(p-1, deliverableForP);
                     } 
                 }
             }
         }
         // true iff deliverable is not empty after updating it
-        return !this.deliverable.isEmpty();
+        return !deliverableIsEmpty();
+    }
+
+    private boolean deliverableIsEmpty() {
+        for(ArrayList<int[]> l: this.deliverable) {
+            if(!l.isEmpty()) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private boolean isSmallerThanClock(int[] w) {
@@ -115,6 +163,31 @@ public class LocalizedCausalBroadcast implements Observer {
         String[] splitOgUniqueId = msgOgUniqueId.split("\\s+");
         this.log.add("d " + splitOgUniqueId[1] + " " + splitOgUniqueId[0]);
         this.delivered.add(msgOgUniqueId);
+        System.out.println("Delivering to Lcb log: " + msgOgUniqueId);
     }
 
+    private void printVectorClock(int[] v) {
+        String vectStr = "[";
+        for(int i: v) {
+            vectStr += String.valueOf(i) + ", ";
+        }
+        vectStr = vectStr.substring(0, vectStr.length()-2);
+        System.out.println(vectStr + "]");
+    }
+
+    public int getHostId() {
+        return this.hostId;
+    }
+
+    public ArrayList<String> getLog() {
+        return this.log;
+    }
+
+    public boolean isClosed() {
+        return this.urb.isClosed();
+    }
+
+    public void close() {
+        this.urb.close();
+    }
 }

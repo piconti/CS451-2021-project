@@ -4,6 +4,8 @@ import java.util.List;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
+
 import cs451.*;
 
 public class Parser {
@@ -86,7 +88,7 @@ public class Parser {
         return configParser.readConfig()[1];
     }
 
-    public int[] getDependencies(int hostId) throws FileNotFoundException, IOException {
+    /*public int[] getDependencies(int hostId) throws FileNotFoundException, IOException {
         int[] myDep = configParser.readConfigCausal().get(hostId);
         int[] myDependencies = new int[myDep.length-1];
         if(hostId == myDep[0]) {
@@ -98,6 +100,10 @@ public class Parser {
             throw new IllegalArgumentException();
         }
         return myDependencies;
+    }*/
+
+    public int[] getDependencies(int hostId) throws FileNotFoundException, IOException {
+        return configParser.readConfigCausal().get(hostId);
     }
 
     public void writeToOutput(ArrayList<String> log) throws IOException, FileNotFoundException {

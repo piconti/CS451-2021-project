@@ -5,6 +5,7 @@ import java.net.SocketException;
 import java.lang.ClassNotFoundException;
 import cs451.Parsers.*;
 import cs451.Broadcasts.FifoReliableBroadcast;
+import cs451.Broadcasts.*;
 import cs451.Links.*;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -13,13 +14,14 @@ public class Main {
 
     public static Parser parser;
     public static PerfectLink link;
-    public static FifoReliableBroadcast fifo;
+    public static LocalizedCausalBroadcast lcb;
+    //public static FifoReliableBroadcast fifo;
     //public static BestEffortBroadcast beb;
     //public static UniformReliableBroadcast urb;
     public static int[] myDependencies;
     public static int numMessagesToSend;
     public static int receiverHost;
-    public static ArrayList<String> fifoLog = new ArrayList<>();
+    public static ArrayList<String> lcbLog = new ArrayList<>();
     //public static ArrayList<String> deliveredLog = new ArrayList<>();
     //private static final int PORT_PREFIX = 11000;
 
@@ -30,12 +32,12 @@ public class Main {
         try {
             System.out.println("Writing output.");
             try {
-                fifoLog = fifo.getLog();
+                lcbLog = lcb.getLog();
             } catch(NullPointerException e) {
                 System.out.println("NullPointerException because no log exists. Generating empty log");
-                fifoLog.add("");
+                lcbLog.add("");
             }
-            parser.writeToOutput(fifoLog);
+            parser.writeToOutput(lcbLog);
             //deliveredLog = fifo.getDeliveredLog();
             //parser.writeToOutput(senderLog);
             /*
@@ -52,9 +54,9 @@ public class Main {
                 }
             }*/
             //Thread.sleep(2000);
-            if(!fifo.isClosed()) {
-                System.out.println("closing link " + fifo.getHostId());
-                fifo.close();
+            if(!lcb.isClosed()) {
+                System.out.println("closing link " + lcb.getHostId());
+                lcb.close();
             }
         } catch (Exception e) {
             System.out.println("Something went wrong when wirting to the output file.");
@@ -126,7 +128,8 @@ public class Main {
             systemHosts.put(host.getId(), host.getIp());
         }
 
-        fifo = new FifoReliableBroadcast(parser.myId(), systemHosts);
+        lcb = new LocalizedCausalBroadcast(parser.myId(), systemHosts, myDependencies);
+        //fifo = new FifoReliableBroadcast(parser.myId(), systemHosts);
         //beb = new BestEffortBroadcast(parser.myId(), systemHosts, urbObserver)
         //Perfectlink = new PerfectLink("localhost", currentHostPort, parser.myId());
 
@@ -137,8 +140,8 @@ public class Main {
         //Thread.sleep(20000);
         while(currentM<=numMessagesToSend) {// && link.continueSending()) {
             String contents = "m " + String.valueOf(currentM);
-            Message m = new Message(fifo.getHostId(), currentM, contents, true);
-            fifo.broadcast(m);
+            Message m = new Message(lcb.getHostId(), currentM, contents, true);
+            lcb.broadcast(m);
             currentM++;
             Thread.sleep(500);
         }
