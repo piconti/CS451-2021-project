@@ -129,6 +129,7 @@ public class Main {
         }
 
         lcb = new LocalizedCausalBroadcast(parser.myId(), systemHosts, myDependencies);
+        Thread.sleep(2000);
         //fifo = new FifoReliableBroadcast(parser.myId(), systemHosts);
         //beb = new BestEffortBroadcast(parser.myId(), systemHosts, urbObserver)
         //Perfectlink = new PerfectLink("localhost", currentHostPort, parser.myId());
