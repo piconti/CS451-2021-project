@@ -37,13 +37,13 @@ public class LocalizedCausalBroadcast implements Observer {
         this.urb.broadcast(msg);
         this.localSeqNumber += 1;
         this.log.add("b " + String.valueOf(msg.getId()));
-        System.out.println("Broadcasting: " + String.valueOf(msg.getId()));
+        //System.out.println("Broadcasting: " + String.valueOf(msg.getId()));
     }
 
     @Override
     public void deliver(Message msg) throws UnknownHostException, IOException {
         // p dans le pseudo code: original sender ou current sender???
-        printMsgInDeliver(msg);
+        //printMsgInDeliver(msg);
         String msgOgUniqueId = msg.getOriginalUniqueId();
         int[] wClock = msg.getClock();
         addToPending(msgOgUniqueId, wClock);
@@ -51,16 +51,16 @@ public class LocalizedCausalBroadcast implements Observer {
             for(int p=1; p<=this.deliverable.size(); ++p) {
                 ArrayList<int[]> toRemove = new ArrayList<>();
                 for(int[] w: this.deliverable.get(p-1)) {
-                    printVectorClock(w);
+                    //printVectorClock(w);
                     String ogUniqueId = this.pending.get(p-1).get(w);
                     
                     this.pending.get(p-1).remove(w);
                     toRemove.add(w);
                     //this.deliverable.get(p-1).remove(w);
                     this.vectorClock[p-1] += 1;
-                    System.out.print("Updated my vector clock, new clock: ");
-                    printVectorClock(this.vectorClock);
-                    System.out.println("-------------> ogUniqueId in deliver, right before delivering to log: " + ogUniqueId);
+                    //System.out.print("Updated my vector clock, new clock: ");
+                    //printVectorClock(this.vectorClock);
+                    //System.out.println("-------------> ogUniqueId in deliver, right before delivering to log: " + ogUniqueId);
                     deliverToLog(ogUniqueId);
                 }
                 for(int[] w: toRemove){
@@ -127,10 +127,6 @@ public class LocalizedCausalBroadcast implements Observer {
         if(deliverableIsEmpty()) {
             // for each host in the system
             for(int p=1; p<=this.pending.size(); ++p) {
-                                                            //-> which one???
-            // for each host it's affected by  
-            //for(int p: this.affected) {
-
                 // look at the vector clocks of messges they sent
                 for(int[] w: this.pending.get(p-1).keySet()) {
                     // get all the already deliverable elems sent by p if there are some
@@ -161,8 +157,6 @@ public class LocalizedCausalBroadcast implements Observer {
 
     private boolean isSmallerThanClock(int[] w) {
         for(int i=0; i<w.length; i++) {
-        //for(int p: this.affected) {
-            //if(w[p-1] > this.vectorClock[p-1]) {
             if(w[i] > this.vectorClock[i]) {
                 return false;
             }

@@ -129,8 +129,8 @@ public class Main {
         }
 
         lcb = new LocalizedCausalBroadcast(parser.myId(), systemHosts, myDependencies);
-        if(parser.myId() == 2) {
-            Thread.sleep(2000);
+        if(parser.myId() %2 ==0) {
+            Thread.sleep(3000);
         }
         //fifo = new FifoReliableBroadcast(parser.myId(), systemHosts);
         //beb = new BestEffortBroadcast(parser.myId(), systemHosts, urbObserver)
@@ -148,28 +148,7 @@ public class Main {
             currentM++;
             //Thread.sleep(500);
         }
-        /*
-        if(parser.myId() == receiverHost) {
-            if(!link.isClosed()) {
-                link.receive();
-            }
-        } else {
-            //senderLog = link.lauchSending(numMessagesToSend, receiverHost);
-            while(currentM<=numMessagesToSend) {// && link.continueSending()) {
-                String contents = "m " + String.valueOf(currentM);
-                Message m = new Message(link.getHostId(), currentM, contents, true);
-                link.send(m, "localhost", receiverHostPort);
-                currentM++;
-                Thread.sleep(500);
-            }
-            while(link.hasLeftToAck()) {
-                Thread.sleep(2000);
-                link.resendAllLeftToAck();
-            }
-            senderLog = link.getSentLog();
-            parser.writeToOutput(senderLog);   
-        }*/
-
+       
         // After a process finishes broadcasting,
         // it waits forever for the delivery of messages.
         while (true) {
