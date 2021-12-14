@@ -2,6 +2,7 @@ package cs451.Broadcasts;
 
 import cs451.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.io.IOException;
@@ -31,11 +32,10 @@ public class LocalizedCausalBroadcast implements Observer {
     }
 
     public void broadcast(Message msg) throws UnknownHostException, IOException {
-        int[] wClock = this.vectorClock;
-        wClock[this.hostId-1] = localSeqNumber;
+        int[] wClock = prepWClock(Arrays.copyOf(this.vectorClock, this.vectorClock.length));
         msg.setClock(wClock);
         this.urb.broadcast(msg);
-        localSeqNumber += 1;
+        this.localSeqNumber += 1;
         this.log.add("b " + String.valueOf(msg.getId()));
         System.out.println("Broadcasting: " + String.valueOf(msg.getId()));
     }
@@ -89,6 +89,15 @@ public class LocalizedCausalBroadcast implements Observer {
         System.out.print("      /my current vector clock: "); 
         printVectorClock(this.vectorClock);
         System.out.println(" ");
+    }
+
+    private int[] prepWClock(int[] currentV) {
+        int[] wClock = new int[currentV.length];
+        for(int p: this.affected) {
+            wClock[p-1] = currentV[p-1];
+        }
+        wClock[this.hostId-1] = this.localSeqNumber;
+        return wClock;
     }
 
     private void initializeDeliverable(int systemSize) {
@@ -162,10 +171,10 @@ public class LocalizedCausalBroadcast implements Observer {
     }
 
     private boolean isSmallerThanClock(int[] w) {
-        //for(int i=0; i<w.length; i++) {
-        for(int p: this.affected) {
-            if(w[p-1] > this.vectorClock[p-1]) {
-            //if(w[i] > this.vectorClock[i]) {
+        for(int i=0; i<w.length; i++) {
+        //for(int p: this.affected) {
+            //if(w[p-1] > this.vectorClock[p-1]) {
+            if(w[i] > this.vectorClock[i]) {
                 return false;
             }
         }
