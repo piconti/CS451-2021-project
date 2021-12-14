@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.net.SocketException;
 import java.lang.ClassNotFoundException;
 import cs451.Parsers.*;
-import cs451.Broadcasts.FifoReliableBroadcast;
 import cs451.Broadcasts.*;
 import cs451.Links.*;
 import java.util.ArrayList;
@@ -22,8 +21,6 @@ public class Main {
     public static int numMessagesToSend;
     public static int receiverHost;
     public static ArrayList<String> lcbLog = new ArrayList<>();
-    //public static ArrayList<String> deliveredLog = new ArrayList<>();
-    //private static final int PORT_PREFIX = 11000;
 
 
     private static void handleSignal() {
@@ -38,22 +35,7 @@ public class Main {
                 lcbLog.add("");
             }
             parser.writeToOutput(lcbLog);
-            //deliveredLog = fifo.getDeliveredLog();
-            //parser.writeToOutput(senderLog);
-            /*
-            if(parser.myId() == receiverHost) {
-                link.setReceiving(false);
-                //Thread.sleep(2000);
-                deliveredLog = link.getDeliveredLog();
-                parser.writeToOutput(deliveredLog);
-            } else {
-                //link.setContinueSending(false);
-                if(!parser.wrotetoOutput()) {
-                    senderLog = link.getSentLog();
-                    parser.writeToOutput(senderLog);
-                }
-            }*/
-            //Thread.sleep(2000);
+
             if(!lcb.isClosed()) {
                 System.out.println("closing link " + lcb.getHostId());
                 lcb.close();
@@ -118,35 +100,22 @@ public class Main {
 
         int currentM = 1;
 
-        /*
-        int currentHostPort = PORT_PREFIX + parser.myId();
-        int receiverHostPort = PORT_PREFIX + receiverHost;
-        */
-
         HashMap<Integer, String> systemHosts = new HashMap<Integer, String>();
         for (Host host: parser.hosts()) {
             systemHosts.put(host.getId(), host.getIp());
         }
 
         lcb = new LocalizedCausalBroadcast(parser.myId(), systemHosts, myDependencies);
-        if(parser.myId() %2 ==0) {
-            Thread.sleep(3000);
-        }
-        //fifo = new FifoReliableBroadcast(parser.myId(), systemHosts);
-        //beb = new BestEffortBroadcast(parser.myId(), systemHosts, urbObserver)
-        //Perfectlink = new PerfectLink("localhost", currentHostPort, parser.myId());
-
+        
         System.out.println("My id: " + parser.myId());
 
         System.out.println("Broadcasting and delivering messages...\n");
 
-        //Thread.sleep(20000);
-        while(currentM<=numMessagesToSend) {// && link.continueSending()) {
+        while(currentM<=numMessagesToSend) {
             String contents = "m " + String.valueOf(currentM);
             Message m = new Message(lcb.getHostId(), currentM, contents, true);
             lcb.broadcast(m);
             currentM++;
-            //Thread.sleep(500);
         }
        
         // After a process finishes broadcasting,
