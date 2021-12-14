@@ -51,8 +51,6 @@ public class LocalizedCausalBroadcast implements Observer {
             for(int p=1; p<=this.deliverable.size(); ++p) {
                 ArrayList<int[]> toRemove = new ArrayList<>();
                 for(int[] w: this.deliverable.get(p-1)) {
-                    System.out.println("this.pending.get(" + p + "-1).values(): " + this.pending.get(p-1).values());
-                    System.out.print("w: ");
                     printVectorClock(w);
                     String ogUniqueId = this.pending.get(p-1).get(w);
                     
@@ -82,13 +80,11 @@ public class LocalizedCausalBroadcast implements Observer {
     }
 
     private void printMsgInDeliver(Message msg) {
-        System.out.println(" ");
-        System.out.print("******** Arrived in LCB deliver -> msg with overall unique id: " + msg.getOverallUniqueId());
-        System.out.print("      with vector clock: "); 
+        System.out.print("\n******** Arrived in LCB deliver -> msg with original unique id: " + msg.getOriginalUniqueId());
+        System.out.print(" , with vector clock: "); 
         printVectorClock(msg.getClock());
         System.out.print("      /my current vector clock: "); 
         printVectorClock(this.vectorClock);
-        System.out.println(" ");
     }
 
     private int[] prepWClock(int[] currentV) {
@@ -107,15 +103,10 @@ public class LocalizedCausalBroadcast implements Observer {
     }
 
     private void addToPending(String msgOgUniqueId, int[] wClock) {
-        System.out.print("adding to pending: " + msgOgUniqueId + ", with vector clock: ");
-        printVectorClock(wClock);
-        System.out.print("current host clock: ");
-        printVectorClock(this.vectorClock);
         // code if original sender id
         // get original host id as int
         String[] splitOgUniqueId = msgOgUniqueId.split("\\s+");
         int hostId = Integer.parseInt(splitOgUniqueId[1]);
-        System.out.println("Og host id: " + hostId);
         ConcurrentHashMap<int[], String> currentPendingForHost = new ConcurrentHashMap<>();
         try{
             // get the hashmap of all received msg from this host at index hostId-1
@@ -131,7 +122,6 @@ public class LocalizedCausalBroadcast implements Observer {
 
     private boolean canDeliver() {
         // returns true if there are elements in pending corresponding to condition. puts them inside deliverable
-        System.out.println("deliverable.isEmpty(): " + deliverableIsEmpty());
 
         // if deliverable is not empty, don't update it and empty it before
         if(deliverableIsEmpty()) {
@@ -151,7 +141,6 @@ public class LocalizedCausalBroadcast implements Observer {
                     // if W ≤ V and W not already in deliverable, add it
                     if(isSmallerThanClock(w) && !deliverableForP.contains(w)) {
                         deliverableForP.add(w);
-                        System.out.println("deliverable.isEmpty(): " + deliverableIsEmpty());
                         this.deliverable.set(p-1, deliverableForP);
                     } 
                 }

@@ -146,7 +146,7 @@ public class Main {
             Message m = new Message(lcb.getHostId(), currentM, contents, true);
             lcb.broadcast(m);
             currentM++;
-            Thread.sleep(500);
+            //Thread.sleep(500);
         }
         /*
         if(parser.myId() == receiverHost) {
